@@ -68,6 +68,9 @@ public class Worker extends UntypedActor {
     }
 
     public void parsePacket(ByteString file) {
+        int pcapHeaderLen = 16;
+        int ethHeaderLen = 14;
+        int ipHeaderLen = 20;
         if (file.size()>70) {
             ByteIterator it = file.iterator();
             int ts_sec = it.getInt(ByteOrder.LITTLE_ENDIAN);//4
@@ -91,12 +94,13 @@ public class Worker extends UntypedActor {
                 Long seq = it.getInt(ByteOrder.BIG_ENDIAN) & 0xffffffffl;  //58
                 Long ack = it.getInt(ByteOrder.BIG_ENDIAN) & 0xffffffffl;  //62
                 Integer tcpHeaderLen = (it.getByte() & 0xFF)/ 4;   //63
-                System.out.println(tcpHeaderLen);
-
-//                ByteString tcpdata = file.splitAt(50+tcpHeaderLen)._2();
-                //System.out.println(tcpdata);
+                //System.out.println(tcpHeaderLen);
+                int tcpDataStart = pcapHeaderLen + ethHeaderLen + ipHeaderLen + tcpHeaderLen;
+                int tcpDataStop = incl_len + pcapHeaderLen;
+                ByteString tcpdata = file.slice(tcpDataStart, tcpDataStop);
+                System.out.println(tcpdata.size());
             }
-            parsePacket(file.splitAt(incl_len+16)._2());
+            parsePacket(file.splitAt(incl_len+pcapHeaderLen)._2());
         }
     }
 //    }
