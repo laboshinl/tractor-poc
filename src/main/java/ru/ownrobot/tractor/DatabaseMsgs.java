@@ -43,6 +43,10 @@ public class DatabaseMsgs {
             return String.format("File (%s) chunk (%s)", filename, chunkname);
         }
     }
+    public static class FileListRequest implements Serializable {
+
+    }
+
     public static class NextChunkResponce implements Serializable {
         public String chunkname;
         public String address;
@@ -58,4 +62,31 @@ public class DatabaseMsgs {
         }
     }
 
+    public static class FileJob implements Serializable {
+        public String filename;
+        public FileJob(String filename){
+            this.filename = filename;
+        }
+    }
+    public static class FileJobResponce implements Serializable {
+        public String address;
+        public String nextAddress;
+        public Integer chunkname;
+        public Integer nextOffset;
+        public Integer offset;
+        public Integer nextChunkname;
+
+        public FileJobResponce(String address, Integer chunkname, Integer offset, String nextAddress, Integer nextChunkname, Integer nextOffset){
+            this.address = address;
+            this.chunkname = chunkname;
+            this.nextAddress = nextAddress;
+            this.nextOffset = nextOffset;
+            this.offset = offset;
+            this.nextChunkname = nextChunkname;
+        }
+        @Override
+        public String toString(){
+            return String.format("Address (%s) chunkname (%s) nextAddress (%s) nextSize (%s)",  address, chunkname, nextAddress, nextOffset);
+        }
+    }
 }
