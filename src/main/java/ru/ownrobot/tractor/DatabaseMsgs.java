@@ -10,13 +10,13 @@ import akka.actor.Address;
  */
 public class DatabaseMsgs {
     public static class DatabaseWrite implements Serializable {
-        public Integer chunkname;
+        public Long chunkname;
         public Integer offset;
         public Date timestamp;
         public String filename;
         public String address;
 
-        public DatabaseWrite(String filename, Date timestamp,Integer chunkname, Integer offset, String address){
+        public DatabaseWrite(String filename, Date timestamp, Long chunkname, Integer offset, String address){
             this.chunkname = chunkname;
             this.offset = offset;
             this.timestamp = timestamp;
@@ -31,36 +31,36 @@ public class DatabaseMsgs {
     }
 
 
-    public static class NextChunkRequest implements Serializable {
-        public String chunkname;
-        public String filename;
-        public NextChunkRequest(String filename, String chunkname){
-            this.chunkname = chunkname;
-            this.filename = filename;
-        }
-        @Override
-        public String toString() {
-            return String.format("File (%s) chunk (%s)", filename, chunkname);
-        }
-    }
+//    public static class NextChunkRequest implements Serializable {
+//        public String chunkname;
+//        public String filename;
+//        public NextChunkRequest(String filename, String chunkname){
+//            this.chunkname = chunkname;
+//            this.filename = filename;
+//        }
+//        @Override
+//        public String toString() {
+//            return String.format("File (%s) chunk (%s)", filename, chunkname);
+//        }
+//    }
     public static class FileListRequest implements Serializable {
 
     }
-
-    public static class NextChunkResponce implements Serializable {
-        public String chunkname;
-        public String address;
-        public Integer size;
-        public NextChunkResponce(String chunkname, String address, Integer size ){
-            this.chunkname = chunkname;
-            this.address = address;
-            this.size = size;
-        }
-        @Override
-        public String toString() {
-            return String.format("Chunk (%s) address (%s)", chunkname, address);
-        }
-    }
+//
+//    public static class NextChunkResponce implements Serializable {
+//        public String chunkname;
+//        public String address;
+//        public Integer size;
+//        public NextChunkResponce(String chunkname, String address, Integer size ){
+//            this.chunkname = chunkname;
+//            this.address = address;
+//            this.size = size;
+//        }
+//        @Override
+//        public String toString() {
+//            return String.format("Chunk (%s) address (%s)", chunkname, address);
+//        }
+//    }
 
     public static class FileJob implements Serializable {
         public String filename;
@@ -71,12 +71,12 @@ public class DatabaseMsgs {
     public static class FileJobResponce implements Serializable {
         public String address;
         public String nextAddress;
-        public Integer chunkname;
+        public Long chunkname;
         public Integer nextOffset;
         public Integer offset;
-        public Integer nextChunkname;
+        public Long nextChunkname;
 
-        public FileJobResponce(String address, Integer chunkname, Integer offset, String nextAddress, Integer nextChunkname, Integer nextOffset){
+        public FileJobResponce(String address, Long chunkname, Integer offset, String nextAddress, Long nextChunkname, Integer nextOffset){
             this.address = address;
             this.chunkname = chunkname;
             this.nextAddress = nextAddress;

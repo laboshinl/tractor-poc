@@ -1,4 +1,6 @@
-name := "akka-stream-java8"
+name := "tractor-poc"
+organization := "ru.ownrobot"
+description := "Trafic analysis with MapReduce based on akka actors"
 
 version := "1.0"
 
@@ -20,8 +22,11 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-cluster-tools" % akkaVersion,
 
   "org.mongodb" % "mongo-java-driver" % "2.10.1",
-  "org.bitbucket.dollar" % "dollar" % "1.0-beta2"
-//  "info.gamlor.akkaasync"  %% "akka-io_2.9.1" % "1.0-SNAPSHOT"
+  "org.bitbucket.dollar" % "dollar" % "1.0-beta2",
+  "com.google.protobuf" % "protobuf-java" % "2.5.0"
+
 )
 
 fork in run := true
+
+

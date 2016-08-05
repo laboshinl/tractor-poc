@@ -16,39 +16,31 @@ public class WorkerMsgs {
             this.data = data;
         }
     }
+    public static class PacketStatus implements Serializable{
+        public ByteString data;
+        public boolean status;
+        public PacketStatus(boolean status, ByteString data){
+            this.status = status;
+            this.data = data;
+        }
+    }
+    public static class TcpData implements Serializable {
+        public String direction;
+        public ByteString tcpData;
+        public Long seqNumber;
+        public TcpData (String direction,  Long seqNumber, ByteString tcpData){
+            this.direction = direction;
+            this.tcpData = tcpData;
+            this.seqNumber = seqNumber;
+        }
+    }
 
     public static class ByteRequest implements Serializable {
-        public Integer chunkname;
+        public Long chunkname;
         public Integer size;
-        public ByteRequest(Integer chunkname, Integer size){
+        public ByteRequest(Long chunkname, Integer size){
             this.chunkname = chunkname;
             this.size = size;
         }
     }
-//    public static class ByteResponce implements Serializable {
-//        public Integer chunkname;
-//        public ByteString data;
-//        public ByteResponce(Integer chunkname, ByteString data){
-//            this.chunkname = chunkname;
-//            this.data = data;
-//        }
-//    }
-
-//    public class MapTask {
-//        public String address;
-//        public String nextAddress;
-//        public String chunkname;
-//        public Integer nextSize;
-//
-//        public MapTask(String address, String chunkname, String nextAddress, Integer nextSize){
-//            this.address = address;
-//            this.chunkname = chunkname;
-//            this.nextAddress = nextAddress;
-//            this.nextSize = nextSize;
-//        }
-//        @Override
-//        public String toString(){
-//            return String.format("Address (%s) chunkname (%s) nextAddress (%s) nextSize (%s)",  address, chunkname, nextAddress, nextSize);
-//        }
-//    }
 }

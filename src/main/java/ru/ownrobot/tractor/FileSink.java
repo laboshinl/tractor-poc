@@ -30,7 +30,7 @@ public class FileSink extends AbstractActorSubscriber {
         Cluster cluster = Cluster.get(getContext().system());
         cluster.state().getMembers().forEach(m -> {
             if (m.hasRole("worker"))
-                routees.add(new ActorRefRoutee(system.actorOf(Props.create(Worker.class).
+                routees.add(new ActorRefRoutee(system.actorOf(Props.create(ChunkSaveActor.class).
                         withDeploy(new Deploy(new RemoteScope(m.address()))))));});
         Router router = new Router(new RoundRobinRoutingLogic(), routees);
         receive(ReceiveBuilder.

@@ -37,7 +37,8 @@ public class ApplicationMain {
                 DatabaseMsgs.FileJobResponce job = (DatabaseMsgs.FileJobResponce)message;
            // System.out.println(job.address);
                 ActorSelection worker = system.actorSelection(job.address+"/user/worker");
-                worker.tell(message, self());
+                ActorRef reducer = system.actorFor("/user/aggregate");
+                worker.tell(message, reducer);
 
           //  }
             //System.out.println(message.toString());
@@ -58,11 +59,11 @@ public class ApplicationMain {
 
             Config config = ConfigFactory.parseString(options).withFallback(
                     ConfigFactory.load());
-            System.out.println(config.getString("tractor.storage.path"));
+            //System.out.println(config.getString("tractor.storage.path"));
             ActorSystem system = ActorSystem.create("ClusterSystem", config);
             system.actorOf(Props.create(Database.class),"database");
-            system.actorOf(Props.create(Worker.class),"worker");
-
+            system.actorOf(Props.create(ChunkBytesActor.class),"bytes");
+            system.actorOf(Props.create(MapActor.class),"worker");
         }
 
         Config config = ConfigFactory.parseString(
@@ -73,8 +74,8 @@ public class ApplicationMain {
         ActorSystem system = ActorSystem.create("ClusterSystem", config);
         final ActorMaterializer materializer = ActorMaterializer.create(system);
 
-        final Integer chunkSize = 100000; //bytes
-        final String inPath = "/home/laboshinl/Downloads/smallFlows.pcap";
+        final Integer chunkSize = 10 * (1024*1024); //bytes
+        final String inPath = "/home/laboshinl/Downloads/bigFlows.pcap";
         final File inputFile = new File(inPath);
 
 
@@ -84,21 +85,24 @@ public class ApplicationMain {
             e.printStackTrace();
         }
 
-        //ByteString string = ByteString.fromString(Source$.MODULE$.fromFile("/home/laboshinl/Downloads/smallFlows.pcap", ).mkString());
+        long startTime = System.currentTimeMillis();
+        FileIO.fromFile(inputFile, chunkSize)
+                .map(i -> new WorkerMsgs.FileChunk(inputFile.getName(), i ))
+                .runWith(Sink.<WorkerMsgs.FileChunk>actorSubscriber(Props.create(FileSink.class)), materializer);
+        long estimatedTime = System.currentTimeMillis() - startTime;
 
+        System.out.printf("File %s saved! in %s ms.\n", inputFile.length() ,estimatedTime);
+
+        try {
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        ActorRef reducer = system.actorOf(Props.create(AggregateActor.class),"aggregate");
         ActorRef printer = system.actorOf(Props.create(PrintActor.class), "printer");
-//        system.actorOf(Props.create(Worker.class).withDeploy(new Deploy(new RemoteScope(new Address("akka.tcp","ClusterSystem","127.0.0.1",2551)))), "worker");
-//        system.actorOf(Props.create(Worker.class).withDeploy(new Deploy(new RemoteScope(new Address("akka.tcp","ClusterSystem","127.0.0.1",2552)))), "worker");
-//        system.actorOf(Props.create(Worker.class).withDeploy(new Deploy(new RemoteScope(new Address("akka.tcp","ClusterSystem","127.0.0.1",2553)))), "worker");
-
         ActorSelection test = system.actorSelection("akka.tcp://ClusterSystem@127.0.0.1:2552/user/database");
-        test.tell(new DatabaseMsgs.FileJob("smallFlows.pcap"), printer);
-
-
-//        FileIO.fromFile(inputFile, chunkSize)
-//                .map(i -> new WorkerMsgs.FileChunk(inputFile.getName(), i ))
-//                .runWith(Sink.<WorkerMsgs.FileChunk>actorSubscriber(Props.create(FileSink.class)), materializer);
-
+        test.tell(new DatabaseMsgs.FileJob("bigFlows.pcap"), printer);
 
     }
 }
