@@ -50,30 +50,41 @@ public class Database extends UntypedActor {
 
         } else if(message instanceof DatabaseMsgs.FileListRequest){
             List<String> result = collection.distinct("filename");
-            System.out.println(result);
+            getSender().tell(result, self());
 
         } else if(message instanceof DatabaseMsgs.FileJob){
             String filename = ((DatabaseMsgs.FileJob) message).filename;
             DBCursor result = collection.find(new BasicDBObject("filename", filename)).sort(new BasicDBObject("timestamp", 1));
-            List <DBObject> array = result.toArray();
-            for (int i =0; i< array.size(); i++){
-                String address = array.get(i).get("address").toString();
-                Long chunkname = (Long) array.get(i).get("chunkname");
-                Long nextChunkname = null;
-                Integer offset = (Integer) array.get(i).get("offset");
-                String nextAddress = null;
-                Integer nextOffset = null;
-                if((i + 1) < array.size()){
-                    nextAddress = array.get(i+1).get("address").toString();
-                    nextOffset = (Integer) array.get(i+1).get("offset");
-                    nextChunkname = (Long) array.get(i+1).get("chunkname");
+            System.out.println("I'm alive!");
+            if (result.length() != 0) {
+                List <DBObject> array = result.toArray();
+                for (int i = 0; i < array.size(); i++) {
+                    String address = array.get(i).get("address").toString();
+                    Long chunkname = (Long) array.get(i).get("chunkname");
+                    Long nextChunkname = null;
+                    Integer offset = (Integer) array.get(i).get("offset");
+                    String nextAddress = null;
+                    Integer nextOffset = null;
+                    if ((i + 1) < array.size()) {
+                        nextAddress = array.get(i + 1).get("address").toString();
+                        nextOffset = (Integer) array.get(i + 1).get("offset");
+                        nextChunkname = (Long) array.get(i + 1).get("chunkname");
+                    }
+                    DatabaseMsgs.FileJobResponce item = new DatabaseMsgs.FileJobResponce(address, chunkname, offset, nextAddress, nextChunkname, nextOffset, array.size());
+                    sender().tell(item, self());
                 }
-                DatabaseMsgs.FileJobResponce item = new DatabaseMsgs.FileJobResponce(address, chunkname, offset, nextAddress, nextChunkname, nextOffset);
-                getSender().tell(item,self());
             }
+            else
+                log.error("No such file in Database");
         } else {
             log.info("Unknown database message type %s", message.getClass());
             unhandled(message);
         }
+    }
+    public void preStart(){
+        log.error("Database actor started");
+    }
+    public void postStop(){
+        log.error("Database actor stopped");
     }
 }

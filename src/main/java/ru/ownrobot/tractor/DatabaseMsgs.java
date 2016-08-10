@@ -68,6 +68,7 @@ public class DatabaseMsgs {
             this.filename = filename;
         }
     }
+
     public static class FileJobResponce implements Serializable {
         public String address;
         public String nextAddress;
@@ -75,14 +76,16 @@ public class DatabaseMsgs {
         public Integer nextOffset;
         public Integer offset;
         public Long nextChunkname;
+        public Integer chunkCount;
 
-        public FileJobResponce(String address, Long chunkname, Integer offset, String nextAddress, Long nextChunkname, Integer nextOffset){
+        public FileJobResponce(String address, Long chunkname, Integer offset, String nextAddress, Long nextChunkname, Integer nextOffset, Integer chunkCount){
             this.address = address;
             this.chunkname = chunkname;
             this.nextAddress = nextAddress;
             this.nextOffset = nextOffset;
             this.offset = offset;
             this.nextChunkname = nextChunkname;
+            this.chunkCount = chunkCount;
         }
         @Override
         public String toString(){

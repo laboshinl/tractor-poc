@@ -8,6 +8,8 @@ scalaVersion := "2.11.7"
 
 val akkaVersion = "2.4.6"
 
+mainClass := Some("ru.ownrobot.tractor.ApplicationMain")
+
 //resolvers += "Gamlor-Repo" at "https://github.com/gamlerhart/gamlor-mvn/raw/master/snapshots"
 
 libraryDependencies ++= Seq(
