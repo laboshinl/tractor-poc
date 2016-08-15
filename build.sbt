@@ -14,6 +14,8 @@ mainClass := Some("ru.ownrobot.tractor.ApplicationMain")
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-stream" % "2.4.6",
+  "com.typesafe.akka" %% "akka-http-experimental" % "2.4.6",
+  "com.typesafe.akka" %% "akka-http-jackson-experimental" % "2.4.6",
   "com.typesafe.akka" % "akka-kernel_2.11" % "2.4.8",
 
 

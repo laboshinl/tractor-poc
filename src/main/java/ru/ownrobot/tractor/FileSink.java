@@ -7,6 +7,7 @@ import akka.cluster.Cluster;
 import akka.japi.pf.ReceiveBuilder;
 import akka.remote.RemoteScope;
 import akka.routing.*;
+import akka.stream.ActorMaterializer;
 import akka.stream.actor.*;
 
 import java.util.ArrayList;

@@ -22,6 +22,7 @@ public class ApplicationMain {
 //		}
 
 //        new FileProcessMain(fileopen.getSelectedFile().getName());
-        new FileProcessMain("smallFlows.pcap");
+//        new FileProcessMain("smallFlows.pcap");
+        new FileProcessMain("bigFlows.pcap");
     }
 }

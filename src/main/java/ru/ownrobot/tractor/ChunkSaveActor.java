@@ -4,6 +4,7 @@ import akka.actor.ActorSystem;
 import akka.actor.UntypedActor;
 import akka.cluster.Cluster;
 import akka.util.ByteIterator;
+import akka.util.ByteString;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import org.bitbucket.dollar.Dollar;

@@ -64,15 +64,15 @@ public class MapActor extends UntypedActor {
 
                     int tcpDataStart = pcapHeaderLen + ethHeaderLen + ipHeaderLen + tcpHeaderLen;
                     int tcpDataStop = incl_len + pcapHeaderLen;
-                    ByteString tcpData = ByteString.empty();
-                    if (tcpDataStop < file.size()){
-                        tcpData = file.slice(tcpDataStart, tcpDataStop);
-
-                    }
-                    else {
-                        tcpData = file.takeRight(tcpDataStart);
-                        log.error("tcp data error {} {}", tcpDataStop, file.size());
-                    }
+                    ByteString tcpData = tcpDataStop < file.size() ? file.slice(tcpDataStart, tcpDataStop) : file.takeRight(tcpDataStart);
+//                    if (tcpDataStop < file.size()){
+//                        tcpData = file.slice(tcpDataStart, tcpDataStop);
+//
+//                    }
+//                    else {
+//                        tcpData = file.takeRight(tcpDataStart);
+//                        log.error("tcp data error {} {}", tcpDataStop, file.size());
+//                    }
                     getSender().tell(new WorkerMsgs.TcpData(String.format("%s:%s->%s:%s", ip_src, src_port, ip_dst, dst_port), seq, tcpData), self());
                     //System.out.println(tcpData.size());
                 }
@@ -117,7 +117,7 @@ public class MapActor extends UntypedActor {
                 keepGoing = result.status;
             }
 
-            ByteString additionalBytes = null;//ByteString.empty();
+            ByteString additionalBytes = ByteString.empty();
 
             if (lostBytes != null) {
                 additionalBytes = (ByteString) Await.result(lostBytes, duration);
