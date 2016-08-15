@@ -64,9 +64,17 @@ public class MapActor extends UntypedActor {
 
                     int tcpDataStart = pcapHeaderLen + ethHeaderLen + ipHeaderLen + tcpHeaderLen;
                     int tcpDataStop = incl_len + pcapHeaderLen;
-                    ByteString tcpData = file.slice(tcpDataStart, tcpDataStop);
-                    getSender().tell(new WorkerMsgs.TcpData(String.format("$s:$s->$s:%s", ip_src, src_port, ip_dst, dst_port), seq, tcpData), self());
-                                        // System.out.println(tcpdata.size());
+                    ByteString tcpData = ByteString.empty();
+                    if (tcpDataStop < file.size()){
+                        tcpData = file.slice(tcpDataStart, tcpDataStop);
+
+                    }
+                    else {
+                        tcpData = file.takeRight(tcpDataStart);
+                        log.error("tcp data error {} {}", tcpDataStop, file.size());
+                    }
+                    getSender().tell(new WorkerMsgs.TcpData(String.format("%s:%s->%s:%s", ip_src, src_port, ip_dst, dst_port), seq, tcpData), self());
+                    //System.out.println(tcpData.size());
                 }
                 return new WorkerMsgs.PacketStatus(true, file.splitAt(incl_len + pcapHeaderLen)._2());
             }
@@ -79,15 +87,18 @@ public class MapActor extends UntypedActor {
 
             DatabaseMsgs.FileJobResponce job = (DatabaseMsgs.FileJobResponce)message;
 
+            Future<Object> lostBytes = null;
 
             Duration duration = Duration.apply("10 sec");
-            Future<Object> lostBytes = Patterns.ask(getContext().system().actorFor(job.nextAddress + "/user/bytes"), new WorkerMsgs.ByteRequest(job.nextChunkname, job.nextOffset), 10000);
+            if (job.nextAddress != null) {
+                lostBytes = Patterns.ask(getContext().system().actorFor(job.nextAddress + "/user/bytes"), new WorkerMsgs.ByteRequest(job.nextChunkname, job.nextOffset), 10000);
+            }
 
             Long chunkname = job.chunkname;
             Integer offset = job.offset;
             ActorSystem system = getContext().system();
             Cluster cluster = Cluster.get(system);
-            String address = cluster.selfAddress().toString();
+            //String address = cluster.selfAddress().toString();
 
             Path path = Paths.get("/tmp/" + (cluster.selfAddress().hashCode() & 0xffffffffl));
 
@@ -106,13 +117,19 @@ public class MapActor extends UntypedActor {
                 keepGoing = result.status;
             }
 
-            ByteString additionalBytes = (ByteString) Await.result(lostBytes, duration);
+            ByteString additionalBytes = null;//ByteString.empty();
+
+            if (lostBytes != null) {
+                additionalBytes = (ByteString) Await.result(lostBytes, duration);
+            }
+
             ByteString lastRecord = ending.concat(additionalBytes);
             if (lastRecord.size() > 0){
                 if (!parsePacket(lastRecord).status)
                     log.debug("corrupted or ZeroSize last packet");
             }
-            System.out.println("All packets sent!");
+            getSender().tell(job.chunkCount, self());
+            //System.out.println("All packets sent!");
         }
         else{
             unhandled(message);

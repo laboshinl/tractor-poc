@@ -2,6 +2,7 @@ package ru.ownrobot.tractor;
 
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.cluster.Cluster;
 import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.FileIO;
 import akka.stream.javadsl.Sink;
@@ -15,14 +16,17 @@ import java.io.File;
  */
 public class FileUploadMain {
     public FileUploadMain(String inPath) {
-        final Integer chunkSize = 10 * (1024*1024); //bytes
+        final Integer chunkSize = 100000;//10 * (1024*1024); //bytes
         final File inputFile = new File(inPath);
         ActorSystem system = ActorSystem.create("ClusterSystem", ConfigFactory.load());
         final ActorMaterializer materializer = ActorMaterializer.create(system);
+
+        Cluster cluster = Cluster.get(system);
+        cluster.state().getMembers().forEach(m -> System.out.println(m.status()));
         FileIO.fromFile(inputFile, chunkSize)
-                .map(i -> new WorkerMsgs.FileChunk(inputFile.getName(), i ))
+                .map(i -> new WorkerMsgs.FileChunk(inputFile.getName(), i))
                 .runWith(Sink.<WorkerMsgs.FileChunk>actorSubscriber(Props.create(FileSink.class)), materializer);
-        //system.shutdown();
+
     }
 
     public static void main(String[] args) {

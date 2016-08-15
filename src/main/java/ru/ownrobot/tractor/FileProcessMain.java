@@ -2,6 +2,7 @@ package ru.ownrobot.tractor;
 
 import akka.actor.*;
 import akka.cluster.Cluster;
+import akka.remote.RemoteScope;
 import akka.routing.ActorRefRoutee;
 import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.FileIO;
@@ -23,12 +24,15 @@ public class FileProcessMain  {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        ActorRef dbInstance = system.actorFor("/user/database");
+
+        ActorSelection dbInstance = system.actorSelection("akka.tcp://ClusterSystem@node3.ownrobot.ru:2551/user/database");
         //ActorRef dbInstance = system.actorFor(system.actorSelection("/user/database").pathString());
-        ActorRef chunkRouter = system.actorOf(Props.create(ChunkRouter.class), "chunkRouter");
-        ActorRef AggregateActor = system.actorOf(Props.create(AggregateActor.class), "aggregate");
+//        ActorRef chunkRouter = system.actorOf(Props.create(ChunkRouter.class).withDeploy(new Deploy(new RemoteScope(new Address("akka.tcp", "ClysterSystem", "node3.ownrobot.ru", 2551)))), "chunkRouter");
+//        //ActorRef AggregateActor = system.actorOf(Props.create(AggregateActor.class).withDeploy(new Deploy(new RemoteScope(new Address("akka.tcp", "ClysterSystem", "node3.ownrobot.ru", 2551)))), "aggregate");
+//
+//       // ActorRef AggregateActor = system.actorOf(Props.create(AggregateActor.class), "aggregate");
         //dbInstance.tell(new FileListRequest(), self());
-        dbInstance.tell(new DatabaseMsgs.FileJob(filename), chunkRouter);
+        dbInstance.tell(new DatabaseMsgs.FileJob(filename), ActorRef.noSender());
         //system.shutdown();
     }
 

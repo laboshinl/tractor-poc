@@ -1,4 +1,4 @@
-package ru.ownrobot.tractor.proto;
+package ru.ownrobot.tractor.messages;
 
 message FileChunk {
    required string filename = 1;

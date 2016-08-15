@@ -1,5 +1,8 @@
 package ru.ownrobot.tractor;
 
+import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
+import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.cluster.Cluster;
 import akka.event.Logging;
@@ -16,7 +19,10 @@ import java.util.List;
  */
 public class Database extends UntypedActor {
     LoggingAdapter log = Logging.getLogger(getContext().system(), this);
-    Cluster cluster = Cluster.get(getContext().system());
+    ActorSystem system = getContext().system();
+    Cluster cluster = Cluster.get(system);
+
+    //ActorRef aggregateActor = system.actorOf(Props.create(AggregateActor.class), "aggregate");
 
     private DBCollection connectDatabase() {
         Config config = ConfigFactory.load();
@@ -71,7 +77,8 @@ public class Database extends UntypedActor {
                         nextChunkname = (Long) array.get(i + 1).get("chunkname");
                     }
                     DatabaseMsgs.FileJobResponce item = new DatabaseMsgs.FileJobResponce(address, chunkname, offset, nextAddress, nextChunkname, nextOffset, array.size());
-                    sender().tell(item, self());
+                    system.actorSelection(address + "/user/worker").tell(item, system.actorFor("/user/aggregator"));
+//                    sender().tell(item, self());
                 }
             }
             else
