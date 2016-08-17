@@ -53,15 +53,32 @@ public class Database extends UntypedActor {
             document.put("address", ((DatabaseMsgs.DatabaseWrite) message).address);
             collection.insert(document);
 
-        } else if(message instanceof DatabaseMsgs.FileListRequest){
+        } else if (message instanceof DatabaseMsgs.FileListRequest) {
             HashMap<String, Integer> result = new HashMap<>();
             List<String> files = collection.distinct("filename");
             files.forEach(i -> result.put(i,
-                    collection.find(new BasicDBObject("filename", i)).size()*config.getInt("filesystem.chunksize")));
+                    collection.find(new BasicDBObject("filename", i)).size() * config.getInt("filesystem.chunksize")));
             getSender().tell(result, self());
+
+        } else if(message instanceof WorkerMsgs.JobStatus) {
+            BasicDBObject document = new BasicDBObject();
+            document.put("uuid", ((WorkerMsgs.JobStatus) message).jobId);
+            document.put("status", ((WorkerMsgs.JobStatus) message).numProcessed);
+            collection.insert(document);
+
+        } else if (message instanceof DatabaseMsgs.JobListRequest) {
+            HashMap<String, Integer> result = new HashMap<>();
+            // result = collection.distinct("uuid");
+            List<String> files = collection.distinct("uuid");
+
+            files.forEach(i -> result.put(i,
+                    (Integer) collection.find(new BasicDBObject("uuid", i)).toArray().get(0).get("status")));
+            getSender().tell(result, self());
+
 
         } else if(message instanceof DatabaseMsgs.FileJob){
             String filename = ((DatabaseMsgs.FileJob) message).filename;
+            String jobId = ((DatabaseMsgs.FileJob) message).jobId;
             DBCursor result = collection.find(new BasicDBObject("filename", filename)).sort(new BasicDBObject("timestamp", 1));
             System.out.println("I'm alive!");
             if (result.length() != 0) {
@@ -78,7 +95,7 @@ public class Database extends UntypedActor {
                         nextOffset = (Integer) array.get(i + 1).get("offset");
                         nextChunkname = (Long) array.get(i + 1).get("chunkname");
                     }
-                    DatabaseMsgs.FileJobResponce item = new DatabaseMsgs.FileJobResponce(address, chunkname, offset, nextAddress, nextChunkname, nextOffset, array.size());
+                    DatabaseMsgs.FileJobResponce item = new DatabaseMsgs.FileJobResponce(address, chunkname, offset, nextAddress, nextChunkname, nextOffset, array.size(), jobId );
                     system.actorSelection(address + "/user/worker").tell(item, self());
                 }
             }

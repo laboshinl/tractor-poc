@@ -46,6 +46,9 @@ public class DatabaseMsgs {
     public static class FileListRequest implements Serializable {
 
     }
+    public static class JobListRequest implements Serializable {
+
+    }
 //
 //    public static class NextChunkResponce implements Serializable {
 //        public String chunkname;
@@ -64,8 +67,10 @@ public class DatabaseMsgs {
 
     public static class FileJob implements Serializable {
         public String filename;
-        public FileJob(String filename){
+        public String jobId;
+        public FileJob(String filename, String jobId){
             this.filename = filename;
+            this.jobId = jobId;
         }
     }
 
@@ -77,8 +82,9 @@ public class DatabaseMsgs {
         public Integer offset;
         public Long nextChunkname;
         public Integer chunkCount;
+        public String jobId;
 
-        public FileJobResponce(String address, Long chunkname, Integer offset, String nextAddress, Long nextChunkname, Integer nextOffset, Integer chunkCount){
+        public FileJobResponce(String address, Long chunkname, Integer offset, String nextAddress, Long nextChunkname, Integer nextOffset, Integer chunkCount, String jobId){
             this.address = address;
             this.chunkname = chunkname;
             this.nextAddress = nextAddress;
@@ -86,6 +92,7 @@ public class DatabaseMsgs {
             this.offset = offset;
             this.nextChunkname = nextChunkname;
             this.chunkCount = chunkCount;
+            this.jobId = jobId;
         }
         @Override
         public String toString(){

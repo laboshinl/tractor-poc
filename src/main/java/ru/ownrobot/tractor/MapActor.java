@@ -53,7 +53,7 @@ public class MapActor extends UntypedActor {
                 packet[3] & 0xFF);
     }
 
-    public WorkerMsgs.PacketStatus parsePacket(ByteString file) {
+    public WorkerMsgs.PacketStatus parsePacket(ByteString file, String jobId) {
         int pcapHeaderLen = 16;
         int ethHeaderLen = 14;
         int ipHeaderLen = 20;
@@ -89,7 +89,7 @@ public class MapActor extends UntypedActor {
                     int tcpDataStop = incl_len + pcapHeaderLen;
                     ByteString tcpData = tcpDataStop < file.size() ? file.slice(tcpDataStart, tcpDataStop) : file.takeRight(tcpDataStart);
                     Long id = (String.format("%s:%s->%s:%s", ip_src, src_port, ip_dst, dst_port).hashCode() & 0xffffffffl) % nodes.size();
-                    nodes.get(toIntExact(id)).tell(new WorkerMsgs.TcpData(String.format("%s:%s->%s:%s", ip_src, src_port, ip_dst, dst_port), seq, tcpData), self());
+                    nodes.get(toIntExact(id)).tell(new WorkerMsgs.TcpData(String.format("%s:%s->%s:%s", ip_src, src_port, ip_dst, dst_port), seq, tcpData, jobId), self());
                 }
                 return new WorkerMsgs.PacketStatus(true, file.splitAt(incl_len + pcapHeaderLen)._2());
             }
@@ -126,7 +126,7 @@ public class MapActor extends UntypedActor {
             boolean keepGoing = true;
             ByteString ending = file.splitAt(offset)._2();
             while (keepGoing){
-                WorkerMsgs.PacketStatus result = parsePacket(ending);
+                WorkerMsgs.PacketStatus result = parsePacket(ending, job.jobId);
                 ending =  result.data;
                 keepGoing = result.status;
             }
@@ -139,10 +139,10 @@ public class MapActor extends UntypedActor {
 
             ByteString lastRecord = ending.concat(additionalBytes);
             if (lastRecord.size() > 0){
-                if (!parsePacket(lastRecord).status)
+                if (!parsePacket(lastRecord,job.jobId).status)
                     log.debug("corrupted or ZeroSize last packet");
             }
-            nodes.forEach(i -> i.tell(job.chunkCount, self()));
+            nodes.forEach(i -> i.tell(new WorkerMsgs.JobStatus(job.jobId, job.chunkCount), self()));
 
         }
         else{

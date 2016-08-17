@@ -24,14 +24,25 @@ public class WorkerMsgs {
             this.data = data;
         }
     }
+
+    public static class JobStatus implements Serializable {
+        public String jobId;
+        public Integer numProcessed;
+        public JobStatus(String jobId, Integer numProcessed){
+            this.jobId = jobId;
+            this.numProcessed = numProcessed;
+        }
+    }
     public static class TcpData implements Serializable {
         public String direction;
         public ByteString tcpData;
         public Long seqNumber;
-        public TcpData (String direction,  Long seqNumber, ByteString tcpData){
+        public String jobId;
+        public TcpData (String direction,  Long seqNumber, ByteString tcpData, String jobId){
             this.direction = direction;
             this.tcpData = tcpData;
             this.seqNumber = seqNumber;
+            this.jobId = jobId;
         }
     }
 

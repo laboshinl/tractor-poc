@@ -25,6 +25,7 @@ public class AggregateActor extends UntypedActor {
     LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
     HashMap<String, TreeMap<Long, ByteString>> freq = new HashMap<>();
+    HashMap<String, Integer> finJobs = new HashMap<>();
     Integer finishedJobs = 0;
 
     ActorSystem system = getContext().system();
@@ -40,10 +41,14 @@ public class AggregateActor extends UntypedActor {
             freq.put(msg.direction, flow);
 
         }
-        else if (message instanceof Integer){
-            finishedJobs++;
-            System.out.println(String.format("%s/%s jobs finished", finishedJobs, message));
-            if (finishedJobs.equals(message)) {
+        else if (message instanceof WorkerMsgs.JobStatus){
+            WorkerMsgs.JobStatus status = (WorkerMsgs.JobStatus) message;
+            Integer count = finJobs.containsKey(status.jobId) ? finJobs.get(status.jobId) : 0;
+            finJobs.put(status.jobId, count + 1);
+            //finishedJobs++;
+            System.out.println(String.format("%s/%s jobs finished ID=%s", count+1, status.numProcessed, status.jobId));
+//            double percent = finishedJobs/status.numProcessed;
+            if (finJobs.get(status.jobId).equals(status.numProcessed)) {
                 //System.out.println(freq.entrySet().iterator().next().getValue().values());
 //                Source.from(freq.entrySet()).runForeach(i -> {System.out.println(String.format("%s, %s", i.getKey(), i.getValue()));}, materializer).handle((done, failure) -> {
 //                Source.from(freq.entrySet()).runForeach(i -> { i.getValue().forEach((k, v) -> { if (v.utf8String().contains("HTTP")) {System.out.println(k/*v.indexOf(ByteString.fromString("/r/n/r/n", "UTF-8"))*/); /*System.out.println(i.getKey());*/}});}, materializer).handle((done, failure) -> {
@@ -54,14 +59,16 @@ public class AggregateActor extends UntypedActor {
 //                    return NotUsed.getInstance();
 //                });
                 freq.clear();
-                finishedJobs = 0;
-
+                finJobs.remove(status.jobId);
+                system.actorFor("/user/database").tell(new WorkerMsgs.JobStatus(status.jobId, 100), self());
 //
 //                freq.entrySet().stream().sorted(HashMap.Entry.<String, Integer>comparingByValue().reversed())
 //                .limit(10)
 //                        .forEach(System.out::println);
                 //System.out.println(freq);
-            }else System.out.println("not Equal");
+            }/*else
+                system.actorFor("/user/database").tell(new WorkerMsgs.JobStatus(status.jobId, (int) percent), self());*/
+
         } else {
             unhandled(message);
         }
