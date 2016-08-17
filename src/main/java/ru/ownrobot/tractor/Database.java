@@ -124,9 +124,9 @@ public class Database extends UntypedActor {
         }
     }
     public void preStart(){
-        log.error("Database actor started");
+        log.info("Database actor started");
     }
     public void postStop(){
-        log.error("Database actor stopped");
+        log.info("Database actor stopped");
     }
 }

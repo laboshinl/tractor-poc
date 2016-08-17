@@ -10,6 +10,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import java.io.File;
+import java.io.IOException;
 
 /**
  * Created by laboshinl on 8/5/16.
@@ -32,6 +33,13 @@ public class FileUploadMain {
         FileIO.fromFile(inputFile, chunkSize)
                 .map(i -> new WorkerMsgs.FileChunk(inputFile.getName(), i))
                 .runWith(Sink.<WorkerMsgs.FileChunk>actorSubscriber(Props.create(FileSink.class)), materializer);
+//        System.out.println("press return to exit");
+//        try {
+//            System.in.read();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//        system.shutdown();
         //system.shutdown();
 
     }

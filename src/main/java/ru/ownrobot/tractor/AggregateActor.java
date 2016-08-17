@@ -73,7 +73,7 @@ public class AggregateActor extends UntypedActor {
         }
     }
     public void preStart(){
-        log.error("Aggregate actor started");
+        log.info("Aggregate actor started");
     }
     public void postStop(){
         log.info("Aggregate actor stopped");

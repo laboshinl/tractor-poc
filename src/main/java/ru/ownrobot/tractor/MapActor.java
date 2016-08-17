@@ -152,9 +152,9 @@ public class MapActor extends UntypedActor {
         }
     }
     public void preStart(){
-        log.error("Map actor started");
+        log.info("Map actor started");
     }
     public void postStop(){
-        log.error("Map actor stopped");
+        log.info("Map actor stopped");
     }
 }
