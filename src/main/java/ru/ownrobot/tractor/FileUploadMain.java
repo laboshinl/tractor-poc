@@ -22,6 +22,11 @@ public class FileUploadMain {
         final ActorMaterializer materializer = ActorMaterializer.create(system);
 
         Cluster cluster = Cluster.get(system);
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         cluster.state().getMembers().forEach(m -> System.out.println(m.status()));
         FileIO.fromFile(inputFile, chunkSize)
                 .map(i -> new WorkerMsgs.FileChunk(inputFile.getName(), i))

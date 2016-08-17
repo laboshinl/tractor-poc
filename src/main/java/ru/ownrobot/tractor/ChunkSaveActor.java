@@ -54,7 +54,7 @@ public class ChunkSaveActor extends UntypedActor {
             Cluster cluster = Cluster.get(system);
             String address = cluster.selfAddress().toString();
 
-            Path path = Paths.get("/tmp/" + (cluster.selfAddress().hashCode() & 0xffffffffl));
+            Path path = Paths.get("/tmp/" + (address.hashCode() & 0xffffffffl));
 
             ByteIterator it = ((WorkerMsgs.FileChunk) message).data.iterator();
             ByteIterator itCopy;
@@ -92,7 +92,7 @@ public class ChunkSaveActor extends UntypedActor {
             }
             Files.newByteChannel(Paths.get(path.toString() + "/" + chunkname), CREATE, WRITE)
                     .write(((WorkerMsgs.FileChunk) message).data.toByteBuffer());
-            system.actorSelection(address + "/user/database")
+            system.actorFor("/user/database")
                     .tell(new DatabaseMsgs.DatabaseWrite(((WorkerMsgs.FileChunk) message).filename,
                             timestamp, chunkname, offset, address), self());
         } else {

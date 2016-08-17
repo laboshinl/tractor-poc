@@ -12,6 +12,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -21,11 +22,9 @@ public class Database extends UntypedActor {
     LoggingAdapter log = Logging.getLogger(getContext().system(), this);
     ActorSystem system = getContext().system();
     Cluster cluster = Cluster.get(system);
-
-    //ActorRef aggregateActor = system.actorOf(Props.create(AggregateActor.class), "aggregate");
+    Config config = ConfigFactory.load();
 
     private DBCollection connectDatabase() {
-        Config config = ConfigFactory.load();
         String host = config.getString("mongo.host");
         Integer port = config.getInt("mongo.port");
         String db = config.getString("mongo.db");
@@ -55,7 +54,10 @@ public class Database extends UntypedActor {
             collection.insert(document);
 
         } else if(message instanceof DatabaseMsgs.FileListRequest){
-            List<String> result = collection.distinct("filename");
+            HashMap<String, Integer> result = new HashMap<>();
+            List<String> files = collection.distinct("filename");
+            files.forEach(i -> result.put(i,
+                    collection.find(new BasicDBObject("filename", i)).size()*config.getInt("filesystem.chunksize")));
             getSender().tell(result, self());
 
         } else if(message instanceof DatabaseMsgs.FileJob){
@@ -77,8 +79,7 @@ public class Database extends UntypedActor {
                         nextChunkname = (Long) array.get(i + 1).get("chunkname");
                     }
                     DatabaseMsgs.FileJobResponce item = new DatabaseMsgs.FileJobResponce(address, chunkname, offset, nextAddress, nextChunkname, nextOffset, array.size());
-                    system.actorSelection(address + "/user/worker").tell(item, system.actorFor("/user/aggregator"));
-//                    sender().tell(item, self());
+                    system.actorSelection(address + "/user/worker").tell(item, self());
                 }
             }
             else

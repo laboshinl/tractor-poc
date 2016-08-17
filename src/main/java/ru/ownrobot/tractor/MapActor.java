@@ -1,11 +1,13 @@
 package ru.ownrobot.tractor;
 
+import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.UntypedActor;
 import akka.cluster.Cluster;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.pattern.Patterns;
+import akka.routing.*;
 import akka.util.ByteIterator;
 import akka.util.ByteString;
 import scala.concurrent.Await;
@@ -18,11 +20,32 @@ import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+
+import static java.lang.Math.toIntExact;
 
 public class MapActor extends UntypedActor {
 
     LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+    List<ActorRef> nodes = createRouter();
 
+    public List<ActorRef> createRouter(){
+        final List<ActorRef> routees = new ArrayList<>();
+        ActorSystem system = getContext().system();
+        try {
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        Cluster cluster = Cluster.get(getContext().system());
+        cluster.state().getMembers().forEach(m -> {
+            if (m.hasRole("worker"))
+                routees.add(system.actorFor(m.address() + "/user/aggregator"));
+        });
+
+        return routees;
+    }
     private String formIpaddress(byte[] packet) {
         return String.format("%s.%s.%s.%s", packet[0] & 0xFF,
                 packet[1] & 0xFF,
@@ -65,16 +88,8 @@ public class MapActor extends UntypedActor {
                     int tcpDataStart = pcapHeaderLen + ethHeaderLen + ipHeaderLen + tcpHeaderLen;
                     int tcpDataStop = incl_len + pcapHeaderLen;
                     ByteString tcpData = tcpDataStop < file.size() ? file.slice(tcpDataStart, tcpDataStop) : file.takeRight(tcpDataStart);
-//                    if (tcpDataStop < file.size()){
-//                        tcpData = file.slice(tcpDataStart, tcpDataStop);
-//
-//                    }
-//                    else {
-//                        tcpData = file.takeRight(tcpDataStart);
-//                        log.error("tcp data error {} {}", tcpDataStop, file.size());
-//                    }
-                    getSender().tell(new WorkerMsgs.TcpData(String.format("%s:%s->%s:%s", ip_src, src_port, ip_dst, dst_port), seq, tcpData), self());
-                    //System.out.println(tcpData.size());
+                    Long id = (String.format("%s:%s->%s:%s", ip_src, src_port, ip_dst, dst_port).hashCode() & 0xffffffffl) % nodes.size();
+                    nodes.get(toIntExact(id)).tell(new WorkerMsgs.TcpData(String.format("%s:%s->%s:%s", ip_src, src_port, ip_dst, dst_port), seq, tcpData), self());
                 }
                 return new WorkerMsgs.PacketStatus(true, file.splitAt(incl_len + pcapHeaderLen)._2());
             }
@@ -98,7 +113,6 @@ public class MapActor extends UntypedActor {
             Integer offset = job.offset;
             ActorSystem system = getContext().system();
             Cluster cluster = Cluster.get(system);
-            //String address = cluster.selfAddress().toString();
 
             Path path = Paths.get("/tmp/" + (cluster.selfAddress().hashCode() & 0xffffffffl));
 
@@ -128,8 +142,8 @@ public class MapActor extends UntypedActor {
                 if (!parsePacket(lastRecord).status)
                     log.debug("corrupted or ZeroSize last packet");
             }
-            getSender().tell(job.chunkCount, self());
-            //System.out.println("All packets sent!");
+            nodes.forEach(i -> i.tell(job.chunkCount, self()));
+
         }
         else{
             unhandled(message);

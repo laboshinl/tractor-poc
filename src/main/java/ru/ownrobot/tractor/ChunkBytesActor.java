@@ -35,10 +35,12 @@ public class ChunkBytesActor extends UntypedActor {
             unhandled(message);
         }
     }
-    public void preStart(){
-        log.error("ChunkBytes actor started");
+
+    public void preStart() {
+        log.info("ChunkBytes actor started");
     }
-    public void postStop(){
-        log.error("ChunkBytes actor stopped");
+
+    public void postStop() {
+        log.info("ChunkBytes actor stopped");
     }
 }
