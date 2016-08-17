@@ -52,7 +52,6 @@ public class AggregateActor extends UntypedActor {
                 //System.out.println(freq.entrySet().iterator().next().getValue().values());
 //                Source.from(freq.entrySet()).runForeach(i -> {System.out.println(String.format("%s, %s", i.getKey(), i.getValue()));}, materializer).handle((done, failure) -> {
 //                Source.from(freq.entrySet()).runForeach(i -> { i.getValue().forEach((k, v) -> { if (v.utf8String().contains("HTTP")) {System.out.println(k/*v.indexOf(ByteString.fromString("/r/n/r/n", "UTF-8"))*/); /*System.out.println(i.getKey());*/}});}, materializer).handle((done, failure) -> {
-//                Source.from(freq.entrySet()).map(i -> i.getValue()).runWith(Sink.<TreeMap<Long, ByteString>>actorSubscriber(Props.create(FlowSink.class)), materializer);//.handle((done, failure) -> {//
                 System.out.println("All done! =)");
 //                Source.from(freq.entrySet()).runForeach(i -> System.out.println(String.format("%s %s", i.getKey(), i.getValue().size())), materializer).handle((done, failure) -> {
 

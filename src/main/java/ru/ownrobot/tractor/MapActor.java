@@ -10,6 +10,8 @@ import akka.pattern.Patterns;
 import akka.routing.*;
 import akka.util.ByteIterator;
 import akka.util.ByteString;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 import scala.concurrent.Await;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
@@ -26,7 +28,7 @@ import java.util.List;
 import static java.lang.Math.toIntExact;
 
 public class MapActor extends UntypedActor {
-
+    Config config = ConfigFactory.load();
     LoggingAdapter log = Logging.getLogger(getContext().system(), this);
     List<ActorRef> nodes = createRouter();
 
@@ -114,7 +116,7 @@ public class MapActor extends UntypedActor {
             ActorSystem system = getContext().system();
             Cluster cluster = Cluster.get(system);
 
-            Path path = Paths.get("/tmp/" + (cluster.selfAddress().hashCode() & 0xffffffffl));
+            Path path = Paths.get(config.getString("filesystem.path"));
 
             SeekableByteChannel inChannel = Files.newByteChannel(Paths.get(path.toString() + "/" + chunkname));
             ByteBuffer buffer = ByteBuffer.allocate((int) inChannel.size());
