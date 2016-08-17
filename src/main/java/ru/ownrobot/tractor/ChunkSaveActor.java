@@ -22,6 +22,8 @@ import static java.nio.file.StandardOpenOption.WRITE;
 
 public class ChunkSaveActor extends UntypedActor {
 
+    Config config = ConfigFactory.load();
+
     final List<Integer> validEthertypes =
             Dollar.$(Integer.parseInt("800", 16), Integer.parseInt("808", 16))
                     .concat(Dollar.$(Integer.parseInt("0", 16), Integer.parseInt("5dc", 16)))
@@ -54,7 +56,7 @@ public class ChunkSaveActor extends UntypedActor {
             Cluster cluster = Cluster.get(system);
             String address = cluster.selfAddress().toString();
 
-            Path path = Paths.get("/tmp/" + (address.hashCode() & 0xffffffffl));
+            Path path = Paths.get(config.getString("filesystem.path"));
 
             ByteIterator it = ((WorkerMsgs.FileChunk) message).data.iterator();
             ByteIterator itCopy;
@@ -90,7 +92,7 @@ public class ChunkSaveActor extends UntypedActor {
                   e.printStackTrace();
                 }
             }
-            Files.newByteChannel(Paths.get(path.toString() + "/" + chunkname), CREATE, WRITE)
+            Files.newByteChannel(Paths.get(path.toString() +  "/" + chunkname), CREATE, WRITE)
                     .write(((WorkerMsgs.FileChunk) message).data.toByteBuffer());
             system.actorFor("/user/database")
                     .tell(new DatabaseMsgs.DatabaseWrite(((WorkerMsgs.FileChunk) message).filename,

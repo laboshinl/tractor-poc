@@ -54,4 +54,11 @@ public class WorkerMsgs {
             this.size = size;
         }
     }
+
+    public static class DeleteChunk implements Serializable {
+        public Long chunkname;
+        public DeleteChunk(Long chunkname){
+            this.chunkname = chunkname;
+        }
+    }
 }

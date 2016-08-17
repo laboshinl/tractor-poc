@@ -15,8 +15,9 @@ import java.io.File;
  * Created by laboshinl on 8/5/16.
  */
 public class FileUploadMain {
+    Config config = ConfigFactory.load();
     public FileUploadMain(String inPath) {
-        final Integer chunkSize = 10 * (1024*1024); //bytes
+        final Integer chunkSize = config.getInt("filesystem.chunksize") * (1024*1024); //bytes
         final File inputFile = new File(inPath);
         ActorSystem system = ActorSystem.create("ClusterSystem", ConfigFactory.load());
         final ActorMaterializer materializer = ActorMaterializer.create(system);

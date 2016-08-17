@@ -53,6 +53,23 @@ public class Database extends UntypedActor {
             document.put("address", ((DatabaseMsgs.DatabaseWrite) message).address);
             collection.insert(document);
 
+        } else if (message instanceof DatabaseMsgs.FileDeleteRequest) {
+            String filename = ((DatabaseMsgs.FileDeleteRequest) message).filename;
+            DBCursor cursor = collection.find(new BasicDBObject("filename", filename));
+            sender().tell(cursor.size(), self());
+            while (cursor.hasNext()) {
+                DBObject item = cursor.next();
+                system.actorFor(item.get("address")+"/user/chunkdelete").tell(new WorkerMsgs.DeleteChunk((Long) item.get("chunkname")),self());
+                collection.remove(item);
+            }
+        } else if (message instanceof DatabaseMsgs.JobDeleteRequest) {
+            String jobId = ((DatabaseMsgs.JobDeleteRequest) message).jobId;
+            DBCursor cursor = collection.find(new BasicDBObject("uuid", jobId));
+            while (cursor.hasNext()) {
+                DBObject item = cursor.next();
+                collection.remove(item);
+            }
+
         } else if (message instanceof DatabaseMsgs.FileListRequest) {
             HashMap<String, Integer> result = new HashMap<>();
             List<String> files = collection.distinct("filename");

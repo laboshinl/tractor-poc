@@ -49,6 +49,20 @@ public class DatabaseMsgs {
     public static class JobListRequest implements Serializable {
 
     }
+
+    public static class FileDeleteRequest implements Serializable{
+        public String filename;
+        public FileDeleteRequest(String filename){
+            this.filename = filename;
+        }
+    }
+
+    public static class JobDeleteRequest implements Serializable{
+        public String jobId;
+        public JobDeleteRequest(String jobId){
+            this.jobId = jobId;
+        }
+    }
 //
 //    public static class NextChunkResponce implements Serializable {
 //        public String chunkname;

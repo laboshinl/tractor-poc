@@ -6,6 +6,8 @@ import akka.cluster.Cluster;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.util.ByteString;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
@@ -13,7 +15,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class ChunkBytesActor extends UntypedActor {
+
     LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+    Config config = ConfigFactory.load();
 
     @Override
     public void onReceive(Object message) throws Throwable {
@@ -24,7 +28,7 @@ public class ChunkBytesActor extends UntypedActor {
             ActorSystem system = getContext().system();
             Cluster cluster = Cluster.get(system);
 
-            Path path = Paths.get("/tmp/" + (cluster.selfAddress().hashCode() & 0xffffffffl));
+            Path path = Paths.get(config.getString("filesystem.path"));
 
             ByteBuffer buffer = ByteBuffer.allocate(size);
             Files.newByteChannel(Paths.get(path.toString() + "/" + chunkname)).read(buffer);
