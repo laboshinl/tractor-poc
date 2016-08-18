@@ -24,6 +24,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import static java.lang.Math.toIntExact;
 
@@ -31,7 +32,11 @@ public class MapActor extends UntypedActor {
     Config config = ConfigFactory.load();
     LoggingAdapter log = Logging.getLogger(getContext().system(), this);
     List<ActorRef> nodes = createRouter();
+    Random random = new Random();
 
+    public int random() {
+        return Math.abs(random.nextInt()) % config.getInt("workers.count");
+    }
     public List<ActorRef> createRouter(){
         final List<ActorRef> routees = new ArrayList<>();
         ActorSystem system = getContext().system();
@@ -42,8 +47,10 @@ public class MapActor extends UntypedActor {
         }
         Cluster cluster = Cluster.get(getContext().system());
         cluster.state().getMembers().forEach(m -> {
-            if (m.hasRole("worker"))
-                routees.add(system.actorFor(m.address() + "/user/aggregator"));
+            for (int i =0; i< config.getInt("workers.count"); i++) {
+                if (m.hasRole("worker"))
+                    routees.add(system.actorFor(m.address() + "/user/aggregator"+i));
+            }
         });
 
         return routees;
@@ -108,7 +115,7 @@ public class MapActor extends UntypedActor {
 
             Duration duration = Duration.apply("10 sec");
             if (job.nextAddress != null) {
-                lostBytes = Patterns.ask(getContext().system().actorFor(job.nextAddress + "/user/bytes"), new WorkerMsgs.ByteRequest(job.nextChunkname, job.nextOffset), 10000);
+                lostBytes = Patterns.ask(getContext().system().actorFor(job.nextAddress + "/user/bytes"+random()), new WorkerMsgs.ByteRequest(job.nextChunkname, job.nextOffset), 10000);
             }
 
             Long chunkname = job.chunkname;

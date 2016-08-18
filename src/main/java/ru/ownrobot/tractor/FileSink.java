@@ -9,6 +9,8 @@ import akka.remote.RemoteScope;
 import akka.routing.*;
 import akka.stream.ActorMaterializer;
 import akka.stream.actor.*;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +19,7 @@ import java.util.List;
  * Created by laboshinl on 8/2/16.
  */
 public class FileSink extends AbstractActorSubscriber {
-
+    Config config = ConfigFactory.load();
     @Override
     public RequestStrategy requestStrategy() {
         return new WatermarkRequestStrategy(10);
@@ -31,9 +33,11 @@ public class FileSink extends AbstractActorSubscriber {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+        Integer numWorkers = config.getInt("workers.count");
         cluster.state().getMembers().forEach(m -> {
                     if (m.hasRole("worker"))
-                        routees.add(new ActorSelectionRoutee(system.actorSelection(m.address() + "/user/filesystem")));
+                        for (int i =0; i<numWorkers; i++)
+                        routees.add(new ActorSelectionRoutee(system.actorSelection(m.address() + "/user/filesystem"+i)));
                 });
 
         Router router = new Router(new RoundRobinRoutingLogic(), routees);

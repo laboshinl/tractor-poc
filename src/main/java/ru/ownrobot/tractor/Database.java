@@ -14,6 +14,7 @@ import com.typesafe.config.ConfigFactory;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Random;
 
 /**
  * Created by laboshinl on 8/2/16.
@@ -23,6 +24,11 @@ public class Database extends UntypedActor {
     ActorSystem system = getContext().system();
     Cluster cluster = Cluster.get(system);
     Config config = ConfigFactory.load();
+    Random random = new Random();
+
+    public int random() {
+        return Math.abs(random.nextInt()) % config.getInt("workers.count");
+    }
 
     private DBCollection connectDatabase() {
         String host = config.getString("mongo.host");
@@ -59,7 +65,7 @@ public class Database extends UntypedActor {
             sender().tell(cursor.size(), self());
             while (cursor.hasNext()) {
                 DBObject item = cursor.next();
-                system.actorFor(item.get("address")+"/user/chunkdelete").tell(new WorkerMsgs.DeleteChunk((Long) item.get("chunkname")),self());
+                system.actorFor(item.get("address")+"/user/chunkdelete" + random()).tell(new WorkerMsgs.DeleteChunk((Long) item.get("chunkname")),self());
                 collection.remove(item);
             }
         } else if (message instanceof DatabaseMsgs.JobDeleteRequest) {
@@ -113,7 +119,7 @@ public class Database extends UntypedActor {
                         nextChunkname = (Long) array.get(i + 1).get("chunkname");
                     }
                     DatabaseMsgs.FileJobResponce item = new DatabaseMsgs.FileJobResponce(address, chunkname, offset, nextAddress, nextChunkname, nextOffset, array.size(), jobId );
-                    system.actorSelection(address + "/user/worker").tell(item, self());
+                    system.actorSelection(address + "/user/worker" + random()).tell(item, self());
                 }
             }
             else
