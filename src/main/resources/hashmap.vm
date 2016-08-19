@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="Leonid Laboshinl laboshinl@gmail.com">
+    <link rel="icon" href="http://getbootstrap.com/favicon.ico">
+
+    <title>Traffic analysis with Akka actors</title>
+
+    <!-- Bootstrap core CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+          integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+    <!-- Custom styles for this template -->
+    <link href="http://getbootstrap.com/examples/jumbotron-narrow/jumbotron-narrow.css" rel="stylesheet">
+    <script src="http://getbootstrap.com/assets/js/ie-emulation-modes-warning.js"></script>
+
+    <!-- Fonts Awesome -->
+    <link href=" https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet">
+
+</head>
+
+
+
+<body>
+
+<div class="container">
+    <div class="header clearfix">
+        <nav>
+            <ul class="nav nav-pills pull-right">
+                <li role="presentation"><a href="files">Files</a></li>
+                <li role="presentation"><a href="status">Cluster status</a></li>
+                <li role="presentation"><a href="jobs">Jobs</a></li>
+            </ul>
+        </nav>
+        <h3 class="text-muted">Tractor-POC</h3>
+    </div>
+
+    <!--   <div class="jumbotron"> -->
+    <!--<h1>Jumbotron heading</h1>-->
+
+    <h3> Found $data.size() item(s). </h3>
+<!--  <p class="lead"> -->
+        #if( $data.size() > 0)
+
+    <table class="table table-bordered table-striped">
+        <thead>
+        <tr>
+            <th>Key</th>
+            <th>Value</th>
+            #if( $action )
+                <th>Action</th>
+            #end
+            #if( $delete )
+                <th>Delete</th>
+            #end
+        </tr>
+        </thead>
+        <tbody>
+            #foreach( $entry in $data.entrySet())
+            <tr>
+                <td> $entry.key </td>
+                <td> $entry.value </td>
+
+                #if( $action )
+                    <td><a id="action" class="btn btn-xs btn-primary" href="$action?name=$entry.key" role="button">Action</a></td>
+                #end
+
+
+                #if( $delete )
+                    <td><a id="delete" class="btn btn-xs btn-primary" href="$delete?name=$entry.key" role="button"><i class="fa fa-trash" aria-hidden="true"></i></a></td>
+                #end
+            </tr>
+            #end
+        </tbody>
+    </table>
+        #end
+<!--    </p> -->
+    <!--  </div> -->
+
+    <footer class="footer">
+        <p>&copy; 2016 Leonid Laboshin</p>
+    </footer>
+
+</div>
+<!-- /container -->
+<script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.1.1/js/bootstrap.min.js"></script>
+
+</body>
+</html>
+
+
+
