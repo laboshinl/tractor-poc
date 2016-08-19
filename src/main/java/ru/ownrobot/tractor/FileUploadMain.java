@@ -43,9 +43,8 @@ public class FileUploadMain {
 
 
 
-        FileIO.fromFile(inputFile, chunkSize)
+        FileIO.fromFile(inputFile, chunkSize).throttle(1, Duration.create(1, TimeUnit.SECONDS), 10, ThrottleMode.shaping())
                 .map(i -> new WorkerMsgs.FileChunk(inputFile.getName(), i))
-                .throttle(1, Duration.create(1, TimeUnit.SECONDS), 10, ThrottleMode.shaping())
                 .runWith(Sink.<WorkerMsgs.FileChunk>actorSubscriber(Props.create(FileSink.class)), materializer);
 //        System.out.println("press return to exit");
 //        try {

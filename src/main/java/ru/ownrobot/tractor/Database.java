@@ -119,7 +119,9 @@ public class Database extends UntypedActor {
                         nextChunkname = (Long) array.get(i + 1).get("chunkname");
                     }
                     DatabaseMsgs.FileJobResponce item = new DatabaseMsgs.FileJobResponce(address, chunkname, offset, nextAddress, nextChunkname, nextOffset, array.size(), jobId );
+//Thread.sleep(1000);
                     system.actorSelection(address + "/user/worker" + random()).tell(item, self());
+
                 }
             }
             else

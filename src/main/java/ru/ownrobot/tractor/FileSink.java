@@ -45,7 +45,7 @@ public class FileSink extends AbstractActorSubscriber {
                 match(ActorSubscriberMessage.OnNext.class, on -> on.element() instanceof WorkerMsgs.FileChunk,
                         onNext -> {
                             WorkerMsgs.FileChunk msg = (WorkerMsgs.FileChunk) onNext.element();
-                            System.out.println("chunk sent!");
+                            System.out.println("#");
                             router.route(msg, self());
                         }
                 ).build());

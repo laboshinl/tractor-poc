@@ -61,4 +61,15 @@ public class WorkerMsgs {
             this.chunkname = chunkname;
         }
     }
+
+    public static class PacketMsg implements Serializable {
+        public Long flowHash;
+        public Packet packet;
+        public String jobId;
+        public PacketMsg(Long flowHash, Packet packet, String jobId) {
+            this.flowHash = flowHash;
+            this.packet = packet;
+            this.jobId= jobId;
+        }
+    }
 }
