@@ -103,7 +103,6 @@ public class Database extends UntypedActor {
             String filename = ((DatabaseMsgs.FileJob) message).filename;
             String jobId = ((DatabaseMsgs.FileJob) message).jobId;
             DBCursor result = collection.find(new BasicDBObject("filename", filename)).sort(new BasicDBObject("timestamp", 1));
-            System.out.println("I'm alive!");
             if (result.length() != 0) {
                 List <DBObject> array = result.toArray();
                 for (int i = 0; i < array.size(); i++) {
@@ -119,7 +118,6 @@ public class Database extends UntypedActor {
                         nextChunkname = (Long) array.get(i + 1).get("chunkname");
                     }
                     DatabaseMsgs.FileJobResponce item = new DatabaseMsgs.FileJobResponce(address, chunkname, offset, nextAddress, nextChunkname, nextOffset, array.size(), jobId );
-//Thread.sleep(1000);
                     system.actorSelection(address + "/user/worker" + random()).tell(item, self());
 
                 }

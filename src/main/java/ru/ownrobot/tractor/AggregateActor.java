@@ -39,7 +39,7 @@ public class AggregateActor extends UntypedActor {
             if (finishedJobs.get(status.jobId).equals(status.numProcessed)) {
 
                 flows.entrySet().stream()
-                        .sorted(Map.Entry.<Long, FlowStat>comparingByValue())//.reversed())
+                        .sorted(Map.Entry.<Long, FlowStat>comparingByValue().reversed())
                         .limit(10)
                         .forEach(v -> {System.out.println(v.getValue());});
 

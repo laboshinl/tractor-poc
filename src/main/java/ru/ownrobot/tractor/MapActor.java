@@ -125,7 +125,10 @@ public class MapActor extends UntypedActor {
                     boolean synset = ((flags >> 1) & 1) != 0;
                     boolean finset = ((flags >> 0) & 1) != 0;
                     int window = it.getShort(ByteOrder.LITTLE_ENDIAN);
-                    Packet packet = new Packet("TCP", formIpaddress(ipSrc), src_port, formIpaddress(ipDst), dst_port, incl_len, new Date(ts_sec * 1000L + ts_usec / 1000),ackset, pushset, rstset, synset, finset, window);
+                    int tcpDataStart = pcapHeaderLen + ethHeaderLen + ipHeaderLen + tcpHeaderLen;
+                    ByteString payload = tcpDataStart + 4 < file.size() ? file.slice(tcpDataStart, tcpDataStart+4) : ByteString.empty();
+                    String protocol = detectProtocol(payload);
+                    Packet packet = new Packet("TCP", formIpaddress(ipSrc), src_port, formIpaddress(ipDst), dst_port, incl_len, new Date(ts_sec * 1000L + ts_usec / 1000),ackset, pushset, rstset, synset, finset, window, protocol);
                     Long id = Math.abs(flowHash) % nodes.size();
                     nodes.get(toIntExact(id)).tell(new WorkerMsgs.PacketMsg(flowHash, packet, jobId), self());
 
@@ -167,6 +170,47 @@ public class MapActor extends UntypedActor {
                 return new WorkerMsgs.PacketStatus(true, file.splitAt(incl_len + pcapHeaderLen)._2());
             }
         } else return new WorkerMsgs.PacketStatus(false, file);
+    }
+
+    private String detectProtocol(ByteString payload) {
+        if (!payload.isEmpty()){
+            String payString =  payload.utf8String();
+            byte [] payBytes = payload.iterator().getBytes(4);
+            if (payString.contains("GET") ||
+                    payString.contains("POST") ||
+                    payString.contains("HEAD") ||
+                    payString.contains("PUT") ||
+                    payString.contains("HTTP") ||
+                    payString.contains("UNKN") ||
+                    payString.contains("DELE")) {
+                return "HTTP";
+            }
+            else if (payString.contains("LOCK") ||
+                    payString.contains("UNLO") ||
+                    payString.contains("OPTI") ||
+                    payString.contains("PROP") ||
+                    payString.contains("POLL") ||
+                    payString.contains("SEAR") ||
+                    payString.contains("MKCO")) {
+                return "Webdav";
+            }
+            else if (payString.contains("SSH-") || payString.contains("QUIT")) {
+                return "SSH";
+            }
+            else if (payString.contains("Bit")) {
+                return "BitTorrent";
+            }
+            else if (payBytes[0] == (byte) 0x80 || payBytes[1] == (byte) 0x03  ){
+                //Not Working!
+                //System.out.println("DeeeeBUG");
+            //else if (payload.contains(ByteString.fromArray(new byte[]{(byte)0x80}))){
+                return "SSL/TLS";
+            }
+            else
+               return null;
+        }
+        else
+            return null;
     }
 
     @Override

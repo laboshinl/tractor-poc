@@ -1,7 +1,9 @@
 package ru.ownrobot.tractor;
 
+import com.esotericsoftware.kryo.NotNull;
+
 import java.io.Serializable;
-import java.util.Date;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -26,6 +28,42 @@ import java.util.concurrent.TimeUnit;
 //@attribute totalPayload numeric
 //@attribute totalSize numeric
 
+//    libprotoident
+//            * Application protocol (as reported by libprotoident)
+//            * ID number for the application protocol
+//            * Total number of packets sent from first endpoint to second endpoint
+//            * Total number of bytes sent from first endpoint to second endpoint
+//            * Total number of packets sent from second endpoint to first endpoint
+//            * Total number of bytes sent from second endpoint to first endpoint
+//            * Minimum payload size sent from first endpoint to second endpoint
+//            * Mean payload size sent from first endpoint to second endpoint
+//            * Maximum payload size sent from first endpoint to second endpoint
+//            * Standard deviation of payload size sent from first endpoint to
+//            second endpoint
+//            * Minimum payload size sent from second endpoint to first endpoint
+//            * Mean payload size sent from second endpoint to first endpoint
+//            * Maximum payload size sent from second endpoint to first endpoint
+//            * Standard deviation of payload size sent from second endpoint to
+//            first endpoint
+//            * Minimum packet interarrival time for packets sent from first
+//            endpoint to second endpoint
+//            * Mean packet interarrival time for packets sent from first
+//            endpoint to second endpoint
+//            * Maximum packet interarrival time for packets sent from first
+//            endpoint to second endpoint
+//            * Standard deviation of packet interarrival time for packets sent from
+//            first endpoint to second endpoint
+//            * Minimum packet interarrival time for packets sent from second
+//            endpoint to first endpoint
+//            * Mean packet interarrival time for packets sent from second
+//            endpoint to first endpoint
+//            * Maximum packet interarrival time for packets sent from second
+//            endpoint to first endpoint
+//            * Standard deviation of packet interarrival time for packets sent from
+//            second endpoint to first endpoint
+//            * Flow duration (in microseconds)
+//            * Flow start time (as a Unix timestamp)
+
 public class FlowStat implements Serializable, Comparable<FlowStat> {
     public String serverIp;
     public String clientIp;
@@ -40,6 +78,7 @@ public class FlowStat implements Serializable, Comparable<FlowStat> {
     public Integer serverSentMin;
     public Integer clientSentMin;
 
+    public HashMap<String, Integer> protocols;
 
     public Date firstTime;
     public Date lastTime;
@@ -88,6 +127,7 @@ public class FlowStat implements Serializable, Comparable<FlowStat> {
         this.serverPort = 0;
         this.accClientSize = new Long(0);
         this.accServerSize = new Long(0);
+        this.protocols = new HashMap<>();
     }
 
     private long getDateDiff(Date date1, Date date2, TimeUnit timeUnit) {
@@ -101,6 +141,12 @@ public class FlowStat implements Serializable, Comparable<FlowStat> {
         this.accSize += packet.size;
         this.accWindowSize += packet.windowSize;
 
+        if(packet.protocol != null){
+           //System.out.println("Debug");
+           Integer count = this.protocols.containsKey(packet.protocol) ? this.protocols.get(packet.protocol) : 0;
+           count ++;
+           this.protocols.put(packet.protocol, count);
+        }
 
         if(packet.time.before(this.firstTime)){
             this.firstTime = packet.time;
@@ -174,6 +220,20 @@ public class FlowStat implements Serializable, Comparable<FlowStat> {
     public double getSizeRatio(){
         return this.accClientSize.equals(new Long(0)) ? 0 : this.accServerSize / this.accClientSize;
     }
+
+    public String getProtocol(){
+        if (this.protocols.isEmpty()){
+            return "UNIDENTED";
+        }else {
+            String result = Collections.max(this.protocols.entrySet(), Map.Entry.comparingByValue()).getKey();
+            if (result == "SSL/TLS" && (serverPort == 443 || serverPort == 80)){
+                return "HTTPS";
+            }else
+                return result;
+        }
+            //return Collections.max(this.protocols.entrySet(), (entry1, entry2) -> entry1.getValue() - entry2.getValue()).getKey();
+    }
+
     public double getAvWindowSize(){
         return this.totalCount.equals(new Long(0)) ? 0 : accWindowSize / totalCount;
     }
@@ -187,9 +247,10 @@ public class FlowStat implements Serializable, Comparable<FlowStat> {
         return this.clientSentMax - this.clientSentMin ;
     }
     public String toString(){
-        return String.format("Duration %s s, SYN %s, FIN %s, RST %s\n" +
+        return String.format("Protocol %s, Duration %s s, SYN %s, FIN %s, RST %s\n" +
                         "Server %s:%s sent %s packets, %s bytes.\n" +
                         "Client %s:%s sent %s packets, %s bytes.",
+                getProtocol(),
                 getDuration(),
                 this.synCount,
                 this.finCount,
