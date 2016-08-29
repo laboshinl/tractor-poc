@@ -38,6 +38,7 @@ public class MapActor extends UntypedActor {
     public int random() {
         return Math.abs(random.nextInt()) % config.getInt("workers.count");
     }
+
     public List<ActorRef> createRouter(){
         final List<ActorRef> routees = new ArrayList<>();
         ActorSystem system = getContext().system();
@@ -197,6 +198,12 @@ public class MapActor extends UntypedActor {
             else if (payString.contains("SSH-") || payString.contains("QUIT")) {
                 return "SSH";
             }
+            else if (payBytes[0] == (byte) 0xff && payBytes[3] == (byte) 0xff  ){
+                //Not Working!
+                System.out.println("Telnet");
+                //else if (payload.contains(ByteString.fromArray(new byte[]{(byte)0x80}))){
+                return "Telnet";
+            }
             else if (payString.contains("Bit")) {
                 return "BitTorrent";
             }
@@ -221,9 +228,9 @@ public class MapActor extends UntypedActor {
 
             Future<Object> lostBytes = null;
 
-            Duration duration = Duration.apply("10 sec");
+            Duration duration = Duration.apply("60 sec");
             if (job.nextAddress != null) {
-                lostBytes = Patterns.ask(getContext().system().actorFor(job.nextAddress + "/user/bytes"+random()), new WorkerMsgs.ByteRequest(job.nextChunkname, job.nextOffset), 10000);
+                lostBytes = Patterns.ask(getContext().system().actorFor(job.nextAddress + "/user/bytes"+random()), new WorkerMsgs.ByteRequest(job.nextChunkname, job.nextOffset), 60000);
             }
 
             Long chunkname = job.chunkname;

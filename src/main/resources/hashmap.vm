@@ -36,6 +36,7 @@
                 <li role="presentation"><a href="files">Files</a></li>
                 <li role="presentation"><a href="status">Cluster status</a></li>
                 <li role="presentation"><a href="jobs">Jobs</a></li>
+                <li role="presentation"><a href="config">Config</a></li>
             </ul>
         </nav>
         <h3 class="text-muted">Tractor-POC</h3>
@@ -45,6 +46,13 @@
     <!--<h1>Jumbotron heading</h1>-->
 
     <h3> Found $data.size() item(s). </h3>
+    <div class="input-group">
+        <input type="text" class="form-control"  id="link" placeholder="Paste a link...">
+      <span class="input-group-btn">
+        <button class="btn btn-secondary" onclick="location.href='download?name='+document.getElementById('link').value;" type="button">Go!</button>
+      </span>
+    </div>
+    <p></p>
 <!--  <p class="lead"> -->
         #if( $data.size() > 0)
 

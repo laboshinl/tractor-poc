@@ -72,4 +72,15 @@ public class WorkerMsgs {
             this.jobId= jobId;
         }
     }
+
+    public static class ChunkDownloadRequest implements Serializable{
+        public String url;
+        public Integer startPos;
+        public Integer endPos;
+        public ChunkDownloadRequest(String url, int startPos, int endPos) {
+            this.startPos = startPos;
+            this.endPos = endPos;
+            this.url = url;
+        }
+    }
 }

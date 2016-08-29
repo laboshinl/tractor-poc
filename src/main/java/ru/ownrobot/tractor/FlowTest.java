@@ -1,5 +1,9 @@
 package ru.ownrobot.tractor;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
 import java.nio.ByteBuffer;
 import java.util.Date;
 
@@ -14,6 +18,27 @@ public class FlowTest {
         int d = 443;
         System.out.println(hash(a,b, c, d));
         System.out.println(hash(b,a,d,c));
+
+        URL url = null;
+        try {
+            url = new URL("http://xenlet.stu.neva.ru/defcon_19-ctf-00.pcap");
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+        URLConnection urlConnection = null;
+        try {
+            urlConnection = url.openConnection();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        urlConnection.setRequestProperty("Range", "bytes="
+                + "660602880-671088639");
+//        try {
+//            urlConnection.connect();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+        System.out.println(urlConnection.getContentLength());
     }
 
 //    public static Integer hash(Integer x, Integer y)

@@ -226,8 +226,14 @@ public class FlowStat implements Serializable, Comparable<FlowStat> {
             return "UNIDENTED";
         }else {
             String result = Collections.max(this.protocols.entrySet(), Map.Entry.comparingByValue()).getKey();
-            if (result == "SSL/TLS" && (serverPort == 443 || serverPort == 80)){
-                return "HTTPS";
+            if (result == "SSL/TLS") {
+                if (serverPort == 443 || serverPort == 80){
+                    return "HTTPS";
+                }
+                else if (serverPort == 9001){
+                    return "TOR";
+                }
+                else return result;
             }else
                 return result;
         }

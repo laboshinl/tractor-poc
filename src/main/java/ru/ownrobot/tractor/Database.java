@@ -84,10 +84,13 @@ public class Database extends UntypedActor {
             getSender().tell(result, self());
 
         } else if(message instanceof WorkerMsgs.JobStatus) {
+            DBObject exists = new BasicDBObject("uuid", ((WorkerMsgs.JobStatus) message).jobId);
             BasicDBObject document = new BasicDBObject();
             document.put("uuid", ((WorkerMsgs.JobStatus) message).jobId);
             document.put("status", ((WorkerMsgs.JobStatus) message).numProcessed);
-            collection.insert(document);
+            collection.update(exists, document, true,false);
+//            collection.update(new BasicDBObject("uuid", ((WorkerMsgs.JobStatus) message).jobId),
+//                    new BasicDBObject("status", ((WorkerMsgs.JobStatus) message).numProcessed));
 
         } else if (message instanceof DatabaseMsgs.JobListRequest) {
             HashMap<String, Integer> result = new HashMap<>();
@@ -103,6 +106,7 @@ public class Database extends UntypedActor {
             String filename = ((DatabaseMsgs.FileJob) message).filename;
             String jobId = ((DatabaseMsgs.FileJob) message).jobId;
             DBCursor result = collection.find(new BasicDBObject("filename", filename)).sort(new BasicDBObject("timestamp", 1));
+            self().tell(new WorkerMsgs.JobStatus(jobId, 0), self());
             if (result.length() != 0) {
                 List <DBObject> array = result.toArray();
                 for (int i = 0; i < array.size(); i++) {

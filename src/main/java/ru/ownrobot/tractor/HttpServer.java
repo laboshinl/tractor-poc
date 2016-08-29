@@ -62,6 +62,7 @@ public class HttpServer extends AllDirectives  {
             system.actorOf(Props.create(MapActor.class), "worker" + i);
             system.actorOf(Props.create(AggregateActor.class), "aggregator" + i);
             system.actorOf(Props.create(ChunkDeleteActor.class), "chunkdelete" + i);
+            system.actorOf(Props.create(FileDownload.class), "download" + i);
         }
 
 
@@ -170,6 +171,13 @@ public class HttpServer extends AllDirectives  {
                     return complete(HttpEntities.create(ContentTypes.TEXT_HTML_UTF8, renderTemplate(
                             String.format("<div class=\"alert alert-info\" role=\"alert\">Started job <strong> %s </strong> for file %s </div>", jobId, filename), null, null,"jobs")));
                 });
+        Route fileDownloadRoute  =
+                parameterOptional("name", optName -> {
+                    String url = optName.orElse("none");
+                    system.actorFor("/user/download0").tell(url, ActorRef.noSender() );
+                    return complete(HttpEntities.create(ContentTypes.TEXT_HTML_UTF8, renderTemplate(
+                            String.format("<div class=\"alert alert-info\" role=\"alert\">Uploading file <strong> %s </strong> </div>", url), null, null,"files")));
+                });
         Route fileDeleteRoute =
                 parameterOptional("name", optName -> {
                     String filename = optName.orElse("none");
@@ -214,6 +222,10 @@ public class HttpServer extends AllDirectives  {
                         path("filedelete", () ->
                                         // uses the route defined above
                                         fileDeleteRoute
+                        ),
+                        path("download", () ->
+                                        // uses the route defined above
+                                        fileDownloadRoute
                         ),
                         path("jobdelete", () ->
                                         // uses the route defined above

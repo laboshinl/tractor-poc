@@ -50,6 +50,8 @@ public class AggregateActor extends UntypedActor {
                 system.actorFor("/user/database").tell(new WorkerMsgs.JobStatus(status.jobId, 100), self());
 
             }
+            else
+                system.actorFor("/user/database").tell(new WorkerMsgs.JobStatus(status.jobId, finishedJobs.get(status.jobId)*100/status.numProcessed), self());
 
 
         } else {
