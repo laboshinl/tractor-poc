@@ -223,7 +223,7 @@ public class MapActor extends UntypedActor {
             Future<Object> lostBytes = null;
 
             Duration duration = Duration.apply("60 sec");
-            if (job.getNextNodeAddress() != null) {
+            if ( !job.getNextNodeAddress().isEmpty()) {
                 lostBytes = Patterns.ask(getContext().system().actorSelection(job.getNextNodeAddress() + "/user/bytes"+random()), ExtraBytesRequest.newBuilder().setChunkId(job.getNextChunkName()).setCount(job.getNextOffset()).build(), 60000);
             }
 

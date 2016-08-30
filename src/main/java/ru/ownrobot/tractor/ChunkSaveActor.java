@@ -10,6 +10,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import org.bitbucket.dollar.Dollar;
 import ru.ownrobot.tractor.KryoMessages.*;
+import ru.ownrobot.tractor.ProtoMessages.*;
 
 import java.io.IOException;
 import java.nio.ByteOrder;
@@ -111,7 +112,11 @@ public class ChunkSaveActor extends UntypedActor {
             system.actorSelection("/user/database")
                     .tell(new DBRecord(chunkId,offset,timestamp,fileChunk.getFileName(),address),self());
             getSender().tell(ProtoMessages.JobStatusMsg.newBuilder().setJobId(fileChunk.getJobId()).setFinished(true).build(), self());
-        } else {
+        }
+        else if (message instanceof JobFinishedMsg){
+            log.info("I'm so happy =)");
+        }
+        else {
             log.error("Unhandled message of type {}", message.getClass());
             unhandled(message);
         }

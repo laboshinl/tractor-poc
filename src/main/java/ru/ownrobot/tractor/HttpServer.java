@@ -186,7 +186,7 @@ public class HttpServer extends AllDirectives  {
         Route jobDeleteRoute =
                 parameterOptional("name", optName -> {
                     String jobId = optName.orElse("none");
-                    system.actorSelection("/user/database").tell(JobDeleteRequest.newBuilder().setJobId(jobId), ActorRef.noSender());
+                    system.actorSelection("/user/database").tell(JobDeleteRequest.newBuilder().setJobId(jobId).build(), ActorRef.noSender());
                     return complete(HttpEntities.create(ContentTypes.TEXT_HTML_UTF8, renderTemplate(
                             String.format("<div class=\"alert alert-info\" role=\"alert\">Deleted job <strong> %s </strong> </div>", jobId),null,null,"jobs")));
 

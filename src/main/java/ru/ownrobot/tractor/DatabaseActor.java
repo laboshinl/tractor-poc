@@ -60,7 +60,7 @@ public class DatabaseActor extends UntypedActor {
             while (cursor.hasNext()) {
                 DBObject item = cursor.next();
                 system.actorSelection(item.get("address") + "/user/chunkdelete" + random())
-                        .tell(ChunkDeleteRequest.newBuilder().setChunkName((Long) item.get("chunkId")), self());
+                        .tell(ChunkDeleteRequest.newBuilder().setChunkName((Long) item.get("chunkId")).build(), self());
                 collection.remove(item);
             }
 
@@ -115,7 +115,7 @@ public class DatabaseActor extends UntypedActor {
                     Long chunkId = (Long) array.get(i).get("chunkname");
                     Long nextChunkId = 0L;
                     Integer offset = (Integer) array.get(i).get("offset");
-                    String nextAddress = "";
+                    String nextAddress = new String();
                     Integer nextOffset = 0;
                     if ((i + 1) < array.size()) {
                         nextAddress = array.get(i + 1).get("address").toString();
