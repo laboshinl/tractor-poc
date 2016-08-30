@@ -115,7 +115,7 @@ public class DatabaseActor extends UntypedActor {
                     Long chunkId = (Long) array.get(i).get("chunkname");
                     Long nextChunkId = 0L;
                     Integer offset = (Integer) array.get(i).get("offset");
-                    String nextAddress = null;
+                    String nextAddress = "";
                     Integer nextOffset = 0;
                     if ((i + 1) < array.size()) {
                         nextAddress = array.get(i + 1).get("address").toString();

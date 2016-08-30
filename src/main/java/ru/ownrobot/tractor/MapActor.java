@@ -224,7 +224,7 @@ public class MapActor extends UntypedActor {
 
             Duration duration = Duration.apply("60 sec");
             if (job.getNextNodeAddress() != null) {
-                lostBytes = Patterns.ask(getContext().system().actorSelection(job.getNextNodeAddress() + "/user/bytes"+random()), ExtraBytesRequest.newBuilder().setChunkId(job.getNextChunkName()).setCount(job.getNextOffset()), 60000);
+                lostBytes = Patterns.ask(getContext().system().actorSelection(job.getNextNodeAddress() + "/user/bytes"+random()), ExtraBytesRequest.newBuilder().setChunkId(job.getNextChunkName()).setCount(job.getNextOffset()).build(), 60000);
             }
 
             Long chunkname = job.getChunkName();
@@ -260,7 +260,7 @@ public class MapActor extends UntypedActor {
                 if (!parsePacket(lastRecord,job.getJobId()).isFinished())
                     log.debug("corrupted or ZeroSize last packet");
             }
-            nodes.forEach(i -> i.tell(JobStatusMsg.newBuilder().setJobId(job.getJobId()).setFinished(true), self()));
+            nodes.forEach(i -> i.tell(JobStatusMsg.newBuilder().setJobId(job.getJobId()).setFinished(true).build(), self()));
 
         }
         else{
