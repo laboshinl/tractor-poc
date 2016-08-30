@@ -112,6 +112,7 @@ public class ChunkSaveActor extends UntypedActor {
                     .tell(new DBRecord(chunkId,offset,timestamp,fileChunk.getFileName(),address),self());
             getSender().tell(ProtoMessages.JobStatusMsg.newBuilder().setJobId(fileChunk.getJobId()).setFinished(true).build(), self());
         } else {
+            log.error("Unhandled message of type {}", message.getClass());
             unhandled(message);
         }
     }
