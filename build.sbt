@@ -4,7 +4,7 @@ description := "Trafic analysis with MapReduce based on akka actors"
 
 version := "1.0"
 
-scalaVersion := "2.11.7"
+scalaVersion := "2.11.8"
 
 val akkaVersion = "2.4.6"
 
@@ -29,9 +29,12 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-cluster-metrics" % akkaVersion,
   "com.typesafe.akka" %% "akka-cluster-tools" % akkaVersion,
 
+  "com.typesafe.akka" %% "akka-testkit" % akkaVersion,
+  "junit" % "junit" % "4.12",
+
   "org.mongodb" % "mongo-java-driver" % "2.10.1",
   "org.bitbucket.dollar" % "dollar" % "1.0-beta2",
-//  "com.google.protobuf" % "protobuf-java" % "2.5.0",
+  "com.google.protobuf" % "protobuf-java" % "2.5.0",
   "com.google.guava" % "guava" % "19.0",
   "org.apache.velocity" % "velocity" % "1.7",
   "com.github.romix.akka" %% "akka-kryo-serialization" % "0.4.1"

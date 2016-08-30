@@ -11,10 +11,6 @@ import akka.http.javadsl.model.*;
 import akka.http.javadsl.server.AllDirectives;
 import akka.http.javadsl.server.Route;
 import akka.pattern.Patterns;
-import akka.routing.ActorSelectionRoutee;
-import akka.routing.RoundRobinRoutingLogic;
-import akka.routing.Routee;
-import akka.routing.Router;
 import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Flow;
 
@@ -37,6 +33,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 
+import ru.ownrobot.tractor.ProtoMessages.*;
+
 public class HttpServer extends AllDirectives  {
     public static ActorSystem system;// = ActorSystem.create("ClusterSystem", ConfigFactory.load());
 
@@ -53,11 +51,11 @@ public class HttpServer extends AllDirectives  {
 
         Integer numWorkers = config.getInt("workers.count");
 
-        system.actorOf(Props.create(Database.class),"database");
-
+        system.actorOf(Props.create(DatabaseActor.class),"database");
+        system.actorOf(Props.create(JobTrackActor.class), "jobTracker");
 
         for (int i=0; i< numWorkers; i++) {
-            system.actorOf(Props.create(ChunkBytesActor.class),"bytes" + i);
+            system.actorOf(Props.create(SendBytesActor.class),"bytes" + i);
             system.actorOf(Props.create(ChunkSaveActor.class), "filesystem" + i);
             system.actorOf(Props.create(MapActor.class), "worker" + i);
             system.actorOf(Props.create(AggregateActor.class), "aggregator" + i);
@@ -80,12 +78,12 @@ public class HttpServer extends AllDirectives  {
 //                .thenAccept(unbound -> system.terminate());
     }
 
-    public ActorRef selectNode(String service){
+    public ActorSelection selectNode(String service){
         Cluster cluster = Cluster.get(system);
-        final List<ActorRef> nodes = new ArrayList<>();
+        final List<ActorSelection> nodes = new ArrayList<>();
         cluster.state().getMembers().forEach(m -> {
             if (m.hasRole("worker") && m.status()== MemberStatus.up())
-                nodes.add(system.actorFor(m.address() + "/user/" + service));
+                nodes.add(system.actorSelection(m.address() + "/user/" + service));
         });
         return nodes.get(0);
     }
@@ -104,7 +102,7 @@ public class HttpServer extends AllDirectives  {
         HashMap<String, Integer> filelist = new HashMap<>();
         try {
 
-            filelist = (HashMap<String, Integer>) Await.result(Patterns.ask(system.actorFor("/user/database"), new DatabaseMsgs.FileListRequest(), 10000), Duration.apply("10 sec"));
+            filelist = (HashMap<String, Integer>) Await.result(Patterns.ask(system.actorSelection("/user/database"), FileListRequest.newBuilder().build(), 10000), Duration.apply("10 sec"));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -113,7 +111,7 @@ public class HttpServer extends AllDirectives  {
     public HashMap<String, Integer>  jobList() {
         HashMap<String, Integer> filelist = new HashMap<>();
         try {
-            filelist = (HashMap<String, Integer>) Await.result(Patterns.ask(system.actorFor("/user/database"), new DatabaseMsgs.JobListRequest(), 10000), Duration.apply("10 sec"));
+            filelist = (HashMap<String, Integer>) Await.result(Patterns.ask(system.actorSelection("/user/database"), JobListRequest.newBuilder().build(), 10000), Duration.apply("10 sec"));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -128,10 +126,10 @@ public class HttpServer extends AllDirectives  {
         return options;
     }
 
-    public Integer  deleteFile(String filename) {
+    public Integer  deleteFile(String fileName) {
         Integer chunks = 0;
         try {
-            chunks = (Integer) Await.result(Patterns.ask(system.actorFor("/user/database"), new DatabaseMsgs.FileDeleteRequest(filename), 10000), Duration.apply("10 sec"));
+            chunks = (Integer) Await.result(Patterns.ask(system.actorSelection("/user/database"), FileDeleteRequest.newBuilder().setFileName(fileName).build(), 10000), Duration.apply("10 sec"));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -165,16 +163,16 @@ public class HttpServer extends AllDirectives  {
         // This handler generates responses to `/hello?name=XXX` requests
         Route processRoute =
                 parameterOptional("name", optName -> {
-                    String filename = optName.orElse("none");
+                    String fileName = optName.orElse("none");
                     String jobId = UUID.randomUUID().toString();
-                    system.actorFor("/user/database").tell(new DatabaseMsgs.FileJob(filename, jobId), ActorRef.noSender());
+                    system.actorSelection("/user/database").tell(FileProcessRequest.newBuilder().setFileName(fileName).setJobId(jobId).build(), ActorRef.noSender());
                     return complete(HttpEntities.create(ContentTypes.TEXT_HTML_UTF8, renderTemplate(
-                            String.format("<div class=\"alert alert-info\" role=\"alert\">Started job <strong> %s </strong> for file %s </div>", jobId, filename), null, null,"jobs")));
+                            String.format("<div class=\"alert alert-info\" role=\"alert\">Started job <strong> %s </strong> for file %s </div>", jobId, fileName), null, null,"jobs")));
                 });
         Route fileDownloadRoute  =
                 parameterOptional("name", optName -> {
                     String url = optName.orElse("none");
-                    system.actorFor("/user/download0").tell(url, ActorRef.noSender() );
+                    system.actorSelection("/user/download0").tell(ProtoMessages.FileDownloadRequest.newBuilder().setUrl(url).build(), ActorRef.noSender() );
                     return complete(HttpEntities.create(ContentTypes.TEXT_HTML_UTF8, renderTemplate(
                             String.format("<div class=\"alert alert-info\" role=\"alert\">Uploading file <strong> %s </strong> </div>", url), null, null,"files")));
                 });
@@ -188,7 +186,7 @@ public class HttpServer extends AllDirectives  {
         Route jobDeleteRoute =
                 parameterOptional("name", optName -> {
                     String jobId = optName.orElse("none");
-                    system.actorFor("/user/database").tell(new DatabaseMsgs.JobDeleteRequest(jobId), ActorRef.noSender());
+                    system.actorSelection("/user/database").tell(JobDeleteRequest.newBuilder().setJobId(jobId), ActorRef.noSender());
                     return complete(HttpEntities.create(ContentTypes.TEXT_HTML_UTF8, renderTemplate(
                             String.format("<div class=\"alert alert-info\" role=\"alert\">Deleted job <strong> %s </strong> </div>", jobId),null,null,"jobs")));
 

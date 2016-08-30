@@ -1,60 +1,39 @@
 package ru.ownrobot.tractor;
 
-import akka.actor.ActorSystem;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.stream.ActorMaterializer;
+import ru.ownrobot.tractor.ProtoMessages.*;
+import ru.ownrobot.tractor.KryoMessages.*;
 
 import java.util.*;
 
 
-/**
- * Created by laboshinl on 8/4/16.
- */
 public class AggregateActor extends UntypedActor {
-    LoggingAdapter log = Logging.getLogger(getContext().system(), this);
-    ActorSystem system = getContext().system();
+    private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
-    HashMap<String, Integer> finishedJobs = new HashMap<>();
-    HashMap<Long, FlowStat> flows = new HashMap<>();
+    private final HashMap<String, HashMap<Long, FlowStat>> jobs = new HashMap<>();
 
     @Override
     public void onReceive(Object message) throws Throwable {
 
-        if (message instanceof WorkerMsgs.PacketMsg){
-            WorkerMsgs.PacketMsg packetMsg = (WorkerMsgs.PacketMsg) message;
-            FlowStat flow = flows.containsKey(packetMsg.flowHash) ? flows.get(packetMsg.flowHash) : new FlowStat();
-            flow.add(packetMsg.packet);
-            flows.put(packetMsg.flowHash, flow);
+        if (message instanceof TractorPacketMsg){
+            TractorPacketMsg tractorPacketMsg = (TractorPacketMsg) message;
+            HashMap<Long, FlowStat> flows = jobs.containsKey(tractorPacketMsg.getJobId())? jobs.get(tractorPacketMsg.getJobId()) : new HashMap<>();
+            FlowStat flow = flows.containsKey(tractorPacketMsg.getFlowId()) ? flows.get(tractorPacketMsg.getFlowId()) : new FlowStat();
+            flow.add(tractorPacketMsg.getPacket());
+            flows.put(tractorPacketMsg.getFlowId(), flow);
+            jobs.put(tractorPacketMsg.getJobId(),flows);
         }
-        else if (message instanceof WorkerMsgs.JobStatus){
-            WorkerMsgs.JobStatus status = (WorkerMsgs.JobStatus) message;
-
-            Integer count = finishedJobs.containsKey(status.jobId) ? finishedJobs.get(status.jobId) : 0;
-            finishedJobs.put(status.jobId, count + 1);
-
-            System.out.println(String.format("%s/%s jobs finished ID=%s", count + 1, status.numProcessed, status.jobId));
-
-            if (finishedJobs.get(status.jobId).equals(status.numProcessed)) {
-
-                flows.entrySet().stream()
+        else if (message instanceof JobFinishedMsg){
+            String jobId = ((JobFinishedMsg) message).getJobId();
+            jobs.get(jobId).entrySet().stream()
                         .sorted(Map.Entry.<Long, FlowStat>comparingByValue().reversed())
                         .limit(10)
-                        .forEach(v -> {System.out.println(v.getValue());});
-
-                //flows.forEach((k,v) -> {System.out.println(String.format("%s:%s %s:%s total %s", v.clientIp, v.clientPort, v.serverIp, v.serverPort, v.totalCount));});
-
-                flows.clear();
-                finishedJobs.remove(status.jobId);
-                system.actorFor("/user/database").tell(new WorkerMsgs.JobStatus(status.jobId, 100), self());
-
-            }
-            else
-                system.actorFor("/user/database").tell(new WorkerMsgs.JobStatus(status.jobId, finishedJobs.get(status.jobId)*100/status.numProcessed), self());
-
-
+                        .forEach(v -> System.out.println(v.getValue()));
+            jobs.remove(jobId);
         } else {
+            log.error("Unhandled message of type {}", message.getClass());
             unhandled(message);
         }
     }

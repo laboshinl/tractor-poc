@@ -1,0 +1,87 @@
+option java_package = "ru.ownrobot.tractor";
+option java_outer_classname = "ProtoMessages";
+// protoc --java_out=../java/ messages.proto
+
+message JobStatusMsg {
+    required string jobId = 1;
+    required bool finished = 2;
+}
+
+message NewJobMsg{
+    required string jobId = 1;
+    required int32 count = 2;
+}
+
+message JobFinishedMsg{
+    required string jobId = 1;
+}
+
+message ExtraBytesRequest{
+    required int64 chunkId = 1;
+    required int32 count = 2;
+}
+
+message ChunkDownloadRequest{
+    required string url = 1;
+    required int32 startPos = 2;
+    required int32 endPos = 3;
+    required string jobId = 4;
+}
+
+message ChunkDeleteRequest{
+    required int64 chunkName = 1;
+}
+
+message FileDeleteRequest{
+    required string fileName = 1;
+}
+
+message FileDownloadRequest{
+    required string url = 1;
+}
+
+message JobDeleteRequest{
+    required string jobId = 1;
+}
+
+message FileProcessRequest{
+    required string fileName = 1;
+    required string jobId = 2;
+}
+
+message ChunkProcessRequest{
+    required int64 chunkName = 1;
+    required int64 nextChunkName = 2;
+    required string nodeAddress = 3;
+    required string nextNodeAddress = 4;
+    required int32 offset = 5;
+    required int32 nextOffset = 6;
+    required int32 chunkCount = 7;
+    required string jobId = 8;
+}
+
+message JobListRequest{
+
+}
+
+message FileListRequest{
+
+}
+
+
+//message IpPacket{
+//    required bool isSyn = 1;
+//    required bool isFin = 2;
+//    required bool isRst = 3;
+//    required bool isAck = 4;
+//    required bool isPush = 5;
+//    required string proto = 6;
+//    required string ipSrc = 7;
+//    required string ipDst = 8;
+//    required int32 srcPort = 9;
+//    required int32 dstPort = 10;
+//    required int32 size = 11;
+//    required time time = 12;
+//    required string protocol = 13;
+//    required int32 windowSize = 14;
+//}

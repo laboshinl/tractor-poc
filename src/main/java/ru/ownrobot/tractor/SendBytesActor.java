@@ -1,41 +1,42 @@
 package ru.ownrobot.tractor;
 
-import akka.actor.ActorSystem;
 import akka.actor.UntypedActor;
-import akka.cluster.Cluster;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.util.ByteString;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-public class ChunkBytesActor extends UntypedActor {
+import ru.ownrobot.tractor.ProtoMessages.*;
 
-    LoggingAdapter log = Logging.getLogger(getContext().system(), this);
-    Config config = ConfigFactory.load();
+public class SendBytesActor extends UntypedActor {
+
+    private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+    private final Config config = ConfigFactory.load();
 
     @Override
     public void onReceive(Object message) throws Throwable {
 
-        if (message instanceof WorkerMsgs.ByteRequest) {
-            Long chunkname = ((WorkerMsgs.ByteRequest) message).chunkname;
-            Integer size = ((WorkerMsgs.ByteRequest) message).size;
-            ActorSystem system = getContext().system();
-            Cluster cluster = Cluster.get(system);
+        if (message instanceof ExtraBytesRequest) {
+            ExtraBytesRequest extraBytes = (ExtraBytesRequest) message;
+            Long chunkId = extraBytes.getChunkId();
+            Integer count = extraBytes.getCount();
 
-            Path path = Paths.get(config.getString("filesystem.path"));
+            Path path = Paths.get(config.getString("filesystem.path") + File.separator + chunkId);
 
-            ByteBuffer buffer = ByteBuffer.allocate(size);
-            Files.newByteChannel(Paths.get(path.toString() + "/" + chunkname)).read(buffer);
+            ByteBuffer buffer = ByteBuffer.allocate(count);
+            Files.newByteChannel(path).read(buffer);
             buffer.flip();
             ByteString result = ByteString.fromByteBuffer(buffer);
             sender().tell(result, self());
         } else {
+            log.error("Unhandled message of type {}", message.getClass());
             unhandled(message);
         }
     }

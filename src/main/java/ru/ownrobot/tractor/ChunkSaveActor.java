@@ -3,11 +3,13 @@ package ru.ownrobot.tractor;
 import akka.actor.ActorSystem;
 import akka.actor.UntypedActor;
 import akka.cluster.Cluster;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
 import akka.util.ByteIterator;
-import akka.util.ByteString;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import org.bitbucket.dollar.Dollar;
+import ru.ownrobot.tractor.KryoMessages.*;
 
 import java.io.IOException;
 import java.nio.ByteOrder;
@@ -22,9 +24,10 @@ import static java.nio.file.StandardOpenOption.WRITE;
 
 public class ChunkSaveActor extends UntypedActor {
 
-    Config config = ConfigFactory.load();
+    private final Config config = ConfigFactory.load();
+    private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
-    final List<Integer> validEthertypes =
+    private final List<Integer> validEtherTypes =
             Dollar.$(Integer.parseInt("800", 16), Integer.parseInt("808", 16))
                     .concat(Dollar.$(Integer.parseInt("0", 16), Integer.parseInt("5dc", 16)))
                     .concat(Dollar.$(Integer.parseInt("884", 16), Integer.parseInt("89a", 16)))
@@ -50,7 +53,9 @@ public class ChunkSaveActor extends UntypedActor {
 
     @Override
     public void onReceive(Object message) throws Throwable {
-        if (message instanceof WorkerMsgs.FileChunk) {
+        if (message instanceof FileChunk) {
+            //Cast message
+            FileChunk fileChunk = (FileChunk) message;
 
             ActorSystem system = getContext().system();
             Cluster cluster = Cluster.get(system);
@@ -58,45 +63,54 @@ public class ChunkSaveActor extends UntypedActor {
 
             Path path = Paths.get(config.getString("filesystem.path"));
 
-            ByteIterator it = ((WorkerMsgs.FileChunk) message).data.iterator();
+            ByteIterator it = fileChunk.getChunkData().iterator();
             ByteIterator itCopy;
-            int ts_usec = 0;
-            int ts_sec = 0;
+
+            int tsSec = 0;
+            int tsUsec = 0;
             int offset = 0;
+            int inclLen = 0;
+            int origLen = 0;
+            int etherType = 0;
 
             while (it.hasNext()) {
                 itCopy = it.clone();
-                ts_sec = itCopy.getInt(ByteOrder.LITTLE_ENDIAN);
-                ts_usec = itCopy.getInt(ByteOrder.LITTLE_ENDIAN);
-                int incl_len = itCopy.getInt(ByteOrder.nativeOrder());
-                int orig_len = itCopy.getInt(ByteOrder.nativeOrder());
-                itCopy.getBytes(12);
-                int ether_type = itCopy.getShort(ByteOrder.LITTLE_ENDIAN);
-                if (incl_len == orig_len
-                        && incl_len <= 65535 && incl_len >= 41
-                        && ts_sec > 964696316
-                        && validEthertypes.contains(ether_type))
+                try {
+                    tsSec = itCopy.getInt(ByteOrder.LITTLE_ENDIAN);
+                    tsUsec = itCopy.getInt(ByteOrder.LITTLE_ENDIAN);
+                    inclLen = itCopy.getInt(ByteOrder.nativeOrder());
+                    origLen = itCopy.getInt(ByteOrder.nativeOrder());
+                    itCopy.getBytes(12);
+                    etherType = itCopy.getShort(ByteOrder.LITTLE_ENDIAN);
+                } catch (Exception e) {
+                    log.error("Cannot find beggining of the packet record {}", e);
+                }
+                if (inclLen == origLen
+                        && inclLen <= 65535 && inclLen >= 41
+                        && tsSec > 964696316
+                        && validEtherTypes.contains(etherType))
                     break;
                 else
                     it.next();
                 offset++;
             }
 
-            Date timestamp = new Date(ts_sec * 1000L + ts_usec / 1000);
-            Long chunkname = ((WorkerMsgs.FileChunk) message).data.hashCode() & 0xffffffffl;
+            Date timestamp = new Date(tsSec * 1000L + tsUsec / 1000);
+            Long chunkId = fileChunk.getChunkData().hashCode() & 0xffffffffl;
 
             if (!Files.exists(path)) {
                 try {
                     Files.createDirectories(path);
                 } catch (IOException e) {
-                  e.printStackTrace();
+                    e.printStackTrace();
                 }
             }
-            Files.newByteChannel(Paths.get(path.toString() +  "/" + chunkname), CREATE, WRITE)
-                    .write(((WorkerMsgs.FileChunk) message).data.toByteBuffer());
-            system.actorFor("/user/database")
-                    .tell(new DatabaseMsgs.DatabaseWrite(((WorkerMsgs.FileChunk) message).filename,
-                            timestamp, chunkname, offset, address), self());
+
+            Files.newByteChannel(Paths.get(path.toString() + "/" + chunkId), CREATE, WRITE)
+                    .write(fileChunk.getChunkData().toByteBuffer());
+            system.actorSelection("/user/database")
+                    .tell(new DBRecord(chunkId,offset,timestamp,fileChunk.getFileName(),address),self());
+            getSender().tell(ProtoMessages.JobStatusMsg.newBuilder().setJobId(fileChunk.getJobId()).setFinished(true).build(), self());
         } else {
             unhandled(message);
         }

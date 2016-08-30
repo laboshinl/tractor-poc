@@ -1,13 +1,13 @@
 package ru.ownrobot.tractor;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.actor.UntypedActor;
 import akka.cluster.Cluster;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.pattern.Patterns;
-import akka.routing.*;
 import akka.util.ByteIterator;
 import akka.util.ByteString;
 import com.typesafe.config.Config;
@@ -27,20 +27,48 @@ import java.util.Date;
 import java.util.List;
 import java.util.Random;
 
+import ru.ownrobot.tractor.KryoMessages.*;
+import ru.ownrobot.tractor.ProtoMessages.*;
+
 import static java.lang.Math.toIntExact;
 
-public class MapActor extends UntypedActor {
-    Config config = ConfigFactory.load();
-    LoggingAdapter log = Logging.getLogger(getContext().system(), this);
-    List<ActorRef> nodes = createRouter();
-    Random random = new Random();
+class RecordStatus {
+    private boolean isFinished;
+    private ByteString nextRecord;
 
-    public int random() {
+    public RecordStatus(boolean isFinished, ByteString nextRecord) {
+        this.isFinished = isFinished;
+        this.nextRecord = nextRecord;
+    }
+
+    public boolean isFinished() {
+        return isFinished;
+    }
+
+    public void setIsFinished(boolean isFinished) {
+        this.isFinished = isFinished;
+    }
+
+    public ByteString getNextRecord() {
+        return nextRecord;
+    }
+
+    public void setNextRecord(ByteString nextRecord) {
+        this.nextRecord = nextRecord;
+    }
+}
+public class MapActor extends UntypedActor {
+    private final Config config = ConfigFactory.load();
+    private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+    private final List<ActorSelection> nodes = createRouter();
+    private final Random random = new Random();
+
+    private int random() {
         return Math.abs(random.nextInt()) % config.getInt("workers.count");
     }
 
-    public List<ActorRef> createRouter(){
-        final List<ActorRef> routees = new ArrayList<>();
+    private List<ActorSelection> createRouter(){
+        final List<ActorSelection> routees = new ArrayList<>();
         ActorSystem system = getContext().system();
         try {
             Thread.sleep(10000);
@@ -51,7 +79,7 @@ public class MapActor extends UntypedActor {
         cluster.state().getMembers().forEach(m -> {
             for (int i =0; i< config.getInt("workers.count"); i++) {
                 if (m.hasRole("worker"))
-                    routees.add(system.actorFor(m.address() + "/user/aggregator"+i));
+                    routees.add(system.actorSelection(m.address() + "/user/aggregator" + i));
             }
         });
 
@@ -78,7 +106,7 @@ public class MapActor extends UntypedActor {
         return max<<64 | min;
     }
 
-    public WorkerMsgs.PacketStatus parsePacket(ByteString file, String jobId) {
+    private RecordStatus parsePacket(ByteString file, String jobId) {
         int pcapHeaderLen = 16;
         int ethHeaderLen = 14;
         int ipHeaderLen = 20;
@@ -90,7 +118,7 @@ public class MapActor extends UntypedActor {
             int orig_len = it.getInt(ByteOrder.nativeOrder());//16
 
             if (incl_len + pcapHeaderLen > file.size()){ //Packet corrupted
-                return new WorkerMsgs.PacketStatus(false, file);
+                return new RecordStatus(false, file);
             } else {
                 it.getBytes(6);//Srt // 22
                 it.getBytes(6);//DSt // 28
@@ -101,76 +129,42 @@ public class MapActor extends UntypedActor {
                 it.getBytes(2);//checksum;  //42
                 byte[] ipSrc = it.getBytes(4);
                 byte[] ipDst = it.getBytes(4);
-                //String ip_src = formIpaddress(ipSrc); //46
-                //String ip_dst = formIpaddress(ipDst); //50
 
                 if(proto == 6) {
-//                switch (proto){
-//                    case 6:{ //TCP
-                    Integer src_port = it.getShort(ByteOrder.BIG_ENDIAN) & 0xffff; //52
-                    Integer dst_port = it.getShort(ByteOrder.BIG_ENDIAN) & 0xffff;  //54
+                    Integer portSrc = it.getShort(ByteOrder.BIG_ENDIAN) & 0xffff; //52
+                    Integer portDst = it.getShort(ByteOrder.BIG_ENDIAN) & 0xffff;  //54
 
-                    Long flowHash = hash(ipSrc, ipDst, src_port, dst_port);
+                    Long flowHash = hash(ipSrc, ipDst, portSrc, portDst);
 
                     Long seq = it.getInt(ByteOrder.BIG_ENDIAN) & 0xffffffffl;  //58
                     Long ack = it.getInt(ByteOrder.BIG_ENDIAN) & 0xffffffffl;  //62
                     Integer tcpHeaderLen = (it.getByte() & 0xFF) / 4;   //63
                     //it.getByte();
                     byte flags = it.getByte();
-                    boolean conset = ((flags >> 7) & 1) != 0;
-                    boolean eset = ((flags >> 6) & 1) != 0;
-                    boolean urser = ((flags >> 5) & 1) != 0;
-                    boolean ackset = ((flags >> 4) & 1) != 0;
-                    boolean pushset = ((flags >> 3) & 1) != 0;
-                    boolean rstset = ((flags >> 2) & 1) != 0;
-                    boolean synset = ((flags >> 1) & 1) != 0;
-                    boolean finset = ((flags >> 0) & 1) != 0;
+                    boolean conIsSet = ((flags >> 7) & 1) != 0;
+                    boolean eIsSet = ((flags >> 6) & 1) != 0;
+                    boolean urIsSet = ((flags >> 5) & 1) != 0;
+                    boolean ackIsSet = ((flags >> 4) & 1) != 0;
+                    boolean pusIsSset = ((flags >> 3) & 1) != 0;
+                    boolean rstIsSet = ((flags >> 2) & 1) != 0;
+                    boolean synIsSet = ((flags >> 1) & 1) != 0;
+                    boolean finIsSet = ((flags) & 1) != 0;
                     int window = it.getShort(ByteOrder.LITTLE_ENDIAN);
                     int tcpDataStart = pcapHeaderLen + ethHeaderLen + ipHeaderLen + tcpHeaderLen;
                     ByteString payload = tcpDataStart + 4 < file.size() ? file.slice(tcpDataStart, tcpDataStart+4) : ByteString.empty();
                     String protocol = detectProtocol(payload);
-                    Packet packet = new Packet("TCP", formIpaddress(ipSrc), src_port, formIpaddress(ipDst), dst_port, incl_len, new Date(ts_sec * 1000L + ts_usec / 1000),ackset, pushset, rstset, synset, finset, window, protocol);
+
+                    TractorPacket packet = new TractorPacket(synIsSet,finIsSet,rstIsSet,ackIsSet,pusIsSset,
+                            "TCP", formIpaddress(ipSrc), formIpaddress(ipDst), portSrc, portDst, incl_len,
+                            new Date(ts_sec * 1000L + ts_usec / 1000), protocol, window);
+                    //"TCP", formIpaddress(ipSrc), src_port, formIpaddress(ipDst), dst_port, incl_len, new Date(ts_sec * 1000L + ts_usec / 1000),ackset, pushset, rstset, synset, finset, window, protocol);
                     Long id = Math.abs(flowHash) % nodes.size();
-                    nodes.get(toIntExact(id)).tell(new WorkerMsgs.PacketMsg(flowHash, packet, jobId), self());
+                    nodes.get(toIntExact(id)).tell(new TractorPacketMsg(jobId, packet, flowHash), self());
 
                 }
-//                        break;
-//                    }
-//                    case 17:{ //UDP
-//                        Integer src_port = it.getShort(ByteOrder.BIG_ENDIAN) & 0xffff; //52
-//                        Integer dst_port = it.getShort(ByteOrder.BIG_ENDIAN) & 0xffff;  //54
-//                        new Packet(false,false,false,"UDP", src_port, dst_port, incl_len, new Date(ts_sec * 1000L + ts_usec / 1000),0);
-//                        break;
-//                    }
-//                    default:
-//                        break;
-//
-//                }
-//                if (proto == 6) { //Tcp packet
-//                    Long seq = it.getInt(ByteOrder.BIG_ENDIAN) & 0xffffffffl;  //58
-//                    Long ack = it.getInt(ByteOrder.BIG_ENDIAN) & 0xffffffffl;  //62
-//                    Integer tcpHeaderLen = (it.getByte() & 0xFF) / 4;   //63
-//
-//                    int tcpDataStart = pcapHeaderLen + ethHeaderLen + ipHeaderLen + tcpHeaderLen;
-//                    int tcpDataStop = incl_len + pcapHeaderLen;
-//                    ByteString tcpData = tcpDataStop < file.size() ? file.slice(tcpDataStart, tcpDataStop) : file.takeRight(tcpDataStart);
-//                    String data = tcpData.utf8String();
-//                    if(data.contains("GET")){
-//                       String[] lines =  data.split("\\r?\\n");
-//                        if (lines.length > 1) {
-//                            String[] url = lines[0].split("\\s+");
-//                            String[] host = lines[1].split("\\s+");
-//                            if (url.length > 1 && host.length > 1){
-//                                Long id = (String.format("%s:%s->%s:%s", ip_src, src_port, ip_dst, dst_port).hashCode() & 0xffffffffl) % nodes.size();
-//                                nodes.get(toIntExact(id)).tell(new WorkerMsgs.TcpData(String.format("%s:%s->%s:%s", ip_src, src_port, ip_dst, dst_port), seq, ByteString.fromString(host[1])/*tcpData*/, jobId), self());
-//                            }
-//                        }
-//                    }
-//
-//                }
-                return new WorkerMsgs.PacketStatus(true, file.splitAt(incl_len + pcapHeaderLen)._2());
+                return new RecordStatus(true, file.splitAt(incl_len + pcapHeaderLen)._2());
             }
-        } else return new WorkerMsgs.PacketStatus(false, file);
+        } else return new RecordStatus(false, file);
     }
 
     private String detectProtocol(ByteString payload) {
@@ -222,19 +216,19 @@ public class MapActor extends UntypedActor {
 
     @Override
     public void onReceive(Object message) throws Throwable {
-        if (message instanceof DatabaseMsgs.FileJobResponce){
+        if (message instanceof ChunkProcessRequest){
 
-            DatabaseMsgs.FileJobResponce job = (DatabaseMsgs.FileJobResponce)message;
+            ChunkProcessRequest job = (ChunkProcessRequest) message;
 
             Future<Object> lostBytes = null;
 
             Duration duration = Duration.apply("60 sec");
-            if (job.nextAddress != null) {
-                lostBytes = Patterns.ask(getContext().system().actorFor(job.nextAddress + "/user/bytes"+random()), new WorkerMsgs.ByteRequest(job.nextChunkname, job.nextOffset), 60000);
+            if (job.getNextNodeAddress() != null) {
+                lostBytes = Patterns.ask(getContext().system().actorSelection(job.getNextNodeAddress() + "/user/bytes"+random()), ExtraBytesRequest.newBuilder().setChunkId(job.getNextChunkName()).setCount(job.getNextOffset()), 60000);
             }
 
-            Long chunkname = job.chunkname;
-            Integer offset = job.offset;
+            Long chunkname = job.getChunkName();
+            Integer offset = job.getOffset();
             ActorSystem system = getContext().system();
             Cluster cluster = Cluster.get(system);
 
@@ -250,9 +244,9 @@ public class MapActor extends UntypedActor {
             boolean keepGoing = true;
             ByteString ending = file.splitAt(offset)._2();
             while (keepGoing){
-                WorkerMsgs.PacketStatus result = parsePacket(ending, job.jobId);
-                ending =  result.data;
-                keepGoing = result.status;
+                RecordStatus result = parsePacket(ending, job.getJobId());
+                ending =  result.getNextRecord();
+                keepGoing = result.isFinished();
             }
 
             ByteString additionalBytes = ByteString.empty();
@@ -263,13 +257,14 @@ public class MapActor extends UntypedActor {
 
             ByteString lastRecord = ending.concat(additionalBytes);
             if (lastRecord.size() > 0){
-                if (!parsePacket(lastRecord,job.jobId).status)
+                if (!parsePacket(lastRecord,job.getJobId()).isFinished())
                     log.debug("corrupted or ZeroSize last packet");
             }
-            nodes.forEach(i -> i.tell(new WorkerMsgs.JobStatus(job.jobId, job.chunkCount), self()));
+            nodes.forEach(i -> i.tell(JobStatusMsg.newBuilder().setJobId(job.getJobId()).setFinished(true), self()));
 
         }
         else{
+            log.error("Unhandled message of type {}", message.getClass());
             unhandled(message);
         }
     }
