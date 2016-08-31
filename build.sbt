@@ -37,7 +37,12 @@ libraryDependencies ++= Seq(
   "com.google.protobuf" % "protobuf-java" % "2.5.0",
   "com.google.guava" % "guava" % "19.0",
   "org.apache.velocity" % "velocity" % "1.7",
-  "com.github.romix.akka" %% "akka-kryo-serialization" % "0.4.1"
+  "com.github.romix.akka" %% "akka-kryo-serialization" % "0.4.1",
+
+"com.lowagie" % "itext" % "2.1.7",
+"org.jfree" % "jfreechart" % "1.0.19",
+"jfree" % "jcommon" % "1.0.16",
+"com.itextpdf" % "itextpdf" % "5.5.9"
 )
 
 fork in run := true

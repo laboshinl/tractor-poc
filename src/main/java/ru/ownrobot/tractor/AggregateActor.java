@@ -27,11 +27,13 @@ public class AggregateActor extends UntypedActor {
         }
         else if (message instanceof JobFinishedMsg){
             String jobId = ((JobFinishedMsg) message).getJobId();
-            jobs.get(jobId).entrySet().stream()
+            if(jobs.containsKey(jobId)) {
+                jobs.get(jobId).entrySet().stream()
                         .sorted(Map.Entry.<Long, FlowStat>comparingByValue().reversed())
                         .limit(10)
                         .forEach(v -> System.out.println(v.getValue()));
-            jobs.remove(jobId);
+                jobs.remove(jobId);
+            }
         } else {
             log.error("Unhandled message of type {}", message.getClass());
             unhandled(message);

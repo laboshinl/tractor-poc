@@ -133,7 +133,7 @@ public class DatabaseActor extends UntypedActor {
             String fileName = fileProcess.getFileName();
             String jobId = UUID.randomUUID().toString();
 
-            DBCursor result = collection.find(new BasicDBObject("filename", fileName)).sort(new BasicDBObject("timestamp", 1));
+            DBCursor result = collection.find(new BasicDBObject("fileName", fileName)).sort(new BasicDBObject("timestamp", 1));
 
             selectJobTracker(jobId).tell(NewJobMsg.newBuilder().setJobId(jobId).setCount(result.length()).build(), self());
 
@@ -141,7 +141,7 @@ public class DatabaseActor extends UntypedActor {
                 List<DBObject> array = result.toArray();
                 for (int i = 0; i < array.size(); i++) {
                     String address = array.get(i).get("address").toString();
-                    Long chunkId = (Long) array.get(i).get("chunkname");
+                    Long chunkId = (Long) array.get(i).get("chunkId");
                     Long nextChunkId = 0L;
                     Integer offset = (Integer) array.get(i).get("offset");
                     String nextAddress = new String();
@@ -149,7 +149,7 @@ public class DatabaseActor extends UntypedActor {
                     if ((i + 1) < array.size()) {
                         nextAddress = array.get(i + 1).get("address").toString();
                         nextOffset = (Integer) array.get(i + 1).get("offset");
-                        nextChunkId = (Long) array.get(i + 1).get("chunkname");
+                        nextChunkId = (Long) array.get(i + 1).get("chunkId");
                     }
                     ChunkProcessRequest request = ChunkProcessRequest.newBuilder()
                             .setChunkCount(array.size())
@@ -165,7 +165,7 @@ public class DatabaseActor extends UntypedActor {
 
                 }
             } else
-                log.error("No such file in DatabaseActor");
+                log.error("No such file in Database {}", fileName);
         } else {
             log.info("Unknown database message type %s", message.getClass());
             unhandled(message);
