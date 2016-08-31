@@ -65,7 +65,7 @@ public class MapActor extends UntypedActor {
     private final List<ActorSelection> jobTrackers = new ArrayList<>();
 
     private final List<ActorSelection> nodes = createRouter();
-    
+
     private ActorSelection selectJobTracker(String jobId) {
         return jobTrackers.get(Math.abs(jobId.hashCode() % jobTrackers.size()));
     }
@@ -272,6 +272,9 @@ public class MapActor extends UntypedActor {
             selectJobTracker(job.getJobId()).tell(JobStatusMsg.newBuilder().setJobId(job.getJobId()).setFinished(true).build(), self());
             //nodes.forEach(i -> i.tell(JobStatusMsg.newBuilder().setJobId(job.getJobId()).setFinished(true).build(), self()));
 
+        }else if (message instanceof JobFinishedMsg){
+            String jobId = ((JobFinishedMsg) message).getJobId();
+            selectJobTracker(jobId).tell(message, self());
         }
         else{
             log.error("Unhandled message of type {}", message.getClass());
