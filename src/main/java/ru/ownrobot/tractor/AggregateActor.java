@@ -33,6 +33,7 @@ public class AggregateActor extends UntypedActor {
                         .limit(10)
                         .forEach(v -> System.out.println(v.getValue()));
                 jobs.remove(jobId);
+                //(jobs.get(jobId), self());
             }
         } else {
             log.error("Unhandled message of type {}", message.getClass());

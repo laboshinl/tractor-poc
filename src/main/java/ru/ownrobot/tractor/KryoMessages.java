@@ -14,6 +14,33 @@ import java.util.concurrent.TimeUnit;
 
 public class KryoMessages {
 
+    public static class JobResult implements Serializable{
+        public JobResult(String jobId, HashMap<String, FlowStat> flows) {
+            this.jobId = jobId;
+            this.flows = flows;
+        }
+
+        public String getJobId() {
+            return jobId;
+        }
+
+        public void setJobId(String jobId) {
+            this.jobId = jobId;
+        }
+
+        public HashMap<String, FlowStat> getFlows() {
+            return flows;
+        }
+
+        public void setFlows(HashMap<String, FlowStat> flows) {
+            this.flows = flows;
+        }
+
+        private String jobId;
+        private HashMap<String,FlowStat> flows;
+
+    }
+
     public static class FileChunk implements Serializable {
         private ByteString chunkData;
         private String fileName;
