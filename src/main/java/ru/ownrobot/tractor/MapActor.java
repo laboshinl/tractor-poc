@@ -61,10 +61,11 @@ class RecordStatus {
 public class MapActor extends UntypedActor {
     private final Config config = ConfigFactory.load();
     private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
-    private final List<ActorSelection> nodes = createRouter();
     private final Random random = new Random();
     private final List<ActorSelection> jobTrackers = new ArrayList<>();
 
+    private final List<ActorSelection> nodes = createRouter();
+    
     private ActorSelection selectJobTracker(String jobId) {
         return jobTrackers.get(Math.abs(jobId.hashCode() % jobTrackers.size()));
     }
