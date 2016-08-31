@@ -60,7 +60,7 @@ public class HttpServer extends AllDirectives  {
             system.actorOf(Props.create(MapActor.class), "worker" + i);
             system.actorOf(Props.create(AggregateActor.class), "aggregator" + i);
             system.actorOf(Props.create(ChunkDeleteActor.class), "chunkdelete" + i);
-            system.actorOf(Props.create(FileDownload.class), "download" + i);
+            system.actorOf(Props.create(FileDownloadActor.class), "download" + i);
         }
 
 

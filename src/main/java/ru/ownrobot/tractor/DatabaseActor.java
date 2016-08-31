@@ -1,13 +1,20 @@
 package ru.ownrobot.tractor;
 
+import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.actor.UntypedActor;
+import akka.cluster.Cluster;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.routing.ActorSelectionRoutee;
+import akka.routing.RoundRobinRoutingLogic;
+import akka.routing.Routee;
+import akka.routing.Router;
 import com.mongodb.*;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
@@ -21,9 +28,32 @@ public class DatabaseActor extends UntypedActor {
     private final ActorSystem system = getContext().system();
     private final Config config = ConfigFactory.load();
     private final Random random = new Random();
+    private final Cluster cluster = Cluster.get(system);
 
     private int random() {
         return Math.abs(random.nextInt()) % config.getInt("workers.count");
+    }
+
+    private final List<ActorSelection> jobTrackers = getJobTrackers();
+
+
+    private ActorSelection selectJobTracker(String jobId) {
+        return jobTrackers.get(Math.abs(jobId.hashCode() % jobTrackers.size()));
+    }
+
+    private List<ActorSelection> getJobTrackers() {
+
+        try {
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        List<ActorSelection> jobTrackers = new ArrayList<>();
+        cluster.state().getMembers().forEach(m -> {
+            jobTrackers.add(system.actorSelection(m.address() + "/user/jobTracker"));
+        });
+        return jobTrackers;
     }
 
     private DBCollection connectDatabase() {
@@ -107,6 +137,8 @@ public class DatabaseActor extends UntypedActor {
             String jobId = fileProcess.getJobId();
 
             DBCursor result = collection.find(new BasicDBObject("filename", fileName)).sort(new BasicDBObject("timestamp", 1));
+
+            selectJobTracker(jobId).tell(NewJobMsg.newBuilder().setJobId(jobId).setCount(result.length()).build(), self());
 
             if (result.length() != 0) {
                 List<DBObject> array = result.toArray();

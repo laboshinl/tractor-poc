@@ -8,6 +8,7 @@ import akka.cluster.Cluster;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.pattern.Patterns;
+import akka.routing.Router;
 import akka.util.ByteIterator;
 import akka.util.ByteString;
 import com.typesafe.config.Config;
@@ -62,6 +63,11 @@ public class MapActor extends UntypedActor {
     private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
     private final List<ActorSelection> nodes = createRouter();
     private final Random random = new Random();
+    private final List<ActorSelection> jobTrackers = new ArrayList<>();
+
+    private ActorSelection selectJobTracker(String jobId) {
+        return jobTrackers.get(Math.abs(jobId.hashCode() % jobTrackers.size()));
+    }
 
     private int random() {
         return Math.abs(random.nextInt()) % config.getInt("workers.count");
@@ -78,8 +84,10 @@ public class MapActor extends UntypedActor {
         Cluster cluster = Cluster.get(getContext().system());
         cluster.state().getMembers().forEach(m -> {
             for (int i =0; i< config.getInt("workers.count"); i++) {
-                if (m.hasRole("worker"))
+                if (m.hasRole("worker")) {
                     routees.add(system.actorSelection(m.address() + "/user/aggregator" + i));
+                    jobTrackers.add(system.actorSelection(m.address() + "/user/jobTracker"));
+                }
             }
         });
 
@@ -224,7 +232,7 @@ public class MapActor extends UntypedActor {
 
             Duration duration = Duration.apply("60 sec");
             if ( !job.getNextNodeAddress().isEmpty()) {
-                lostBytes = Patterns.ask(getContext().system().actorSelection(job.getNextNodeAddress() + "/user/bytes"+random()), ExtraBytesRequest.newBuilder().setChunkId(job.getNextChunkName()).setCount(job.getNextOffset()).build(), 60000);
+                lostBytes = Patterns.ask(getContext().system().actorSelection(job.getNextNodeAddress() + "/user/bytes" + random()), ExtraBytesRequest.newBuilder().setChunkId(job.getNextChunkName()).setCount(job.getNextOffset()).build(), 60000);
             }
 
             Long chunkname = job.getChunkName();
@@ -260,7 +268,8 @@ public class MapActor extends UntypedActor {
                 if (!parsePacket(lastRecord,job.getJobId()).isFinished())
                     log.debug("corrupted or ZeroSize last packet");
             }
-            nodes.forEach(i -> i.tell(JobStatusMsg.newBuilder().setJobId(job.getJobId()).setFinished(true).build(), self()));
+            selectJobTracker(job.getJobId()).tell(JobStatusMsg.newBuilder().setJobId(job.getJobId()).setFinished(true).build(), self());
+            //nodes.forEach(i -> i.tell(JobStatusMsg.newBuilder().setJobId(job.getJobId()).setFinished(true).build(), self()));
 
         }
         else{
