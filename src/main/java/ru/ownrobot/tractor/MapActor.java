@@ -274,7 +274,8 @@ public class MapActor extends UntypedActor {
 
         }else if (message instanceof JobFinishedMsg){
             String jobId = ((JobFinishedMsg) message).getJobId();
-            selectJobTracker(jobId).tell(message, self());
+            nodes.forEach(i->i.tell(message,self()));
+            //selectJobTracker(jobId).tell(message, self());
         }
         else{
             log.error("Unhandled message of type {}", message.getClass());
