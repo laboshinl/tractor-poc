@@ -84,10 +84,10 @@ public class MapActor extends UntypedActor {
         Cluster cluster = Cluster.get(getContext().system());
         cluster.state().getMembers().forEach(m -> {
             for (int i =0; i< config.getInt("workers.count"); i++) {
-                if (m.hasRole("worker")) {
+                //if (m.hasRole("worker")) {
                     routees.add(system.actorSelection(m.address() + "/user/aggregator" + i));
                     jobTrackers.add(system.actorSelection(m.address() + "/user/jobTracker"));
-                }
+                //}
             }
         });
 
