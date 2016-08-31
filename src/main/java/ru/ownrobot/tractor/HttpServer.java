@@ -164,10 +164,9 @@ public class HttpServer extends AllDirectives  {
         Route processRoute =
                 parameterOptional("name", optName -> {
                     String fileName = optName.orElse("none");
-                    String jobId = UUID.randomUUID().toString();
-                    system.actorSelection("/user/database").tell(FileProcessRequest.newBuilder().setFileName(fileName).setJobId(jobId).build(), ActorRef.noSender());
+                    system.actorSelection("/user/database").tell(FileProcessRequest.newBuilder().setFileName(fileName).build(), ActorRef.noSender());
                     return complete(HttpEntities.create(ContentTypes.TEXT_HTML_UTF8, renderTemplate(
-                            String.format("<div class=\"alert alert-info\" role=\"alert\">Started job <strong> %s </strong> for file %s </div>", jobId, fileName), null, null,"jobs")));
+                            String.format("<div class=\"alert alert-info\" role=\"alert\">Started job <strong> %s </strong> for file %s </div>", "???", fileName), null, null,"jobs")));
                 });
         Route fileDownloadRoute  =
                 parameterOptional("name", optName -> {

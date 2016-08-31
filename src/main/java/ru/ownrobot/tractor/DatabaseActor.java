@@ -14,10 +14,7 @@ import com.mongodb.*;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 import ru.ownrobot.tractor.ProtoMessages.*;
 import ru.ownrobot.tractor.KryoMessages.*;
@@ -134,7 +131,7 @@ public class DatabaseActor extends UntypedActor {
             FileProcessRequest fileProcess = (FileProcessRequest) message;
 
             String fileName = fileProcess.getFileName();
-            String jobId = fileProcess.getJobId();
+            String jobId = UUID.randomUUID().toString();
 
             DBCursor result = collection.find(new BasicDBObject("filename", fileName)).sort(new BasicDBObject("timestamp", 1));
 

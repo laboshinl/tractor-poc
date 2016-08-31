@@ -4784,32 +4784,29 @@ public final class ProtoMessages {
     // required string fileName = 1;
     /**
      * <code>required string fileName = 1;</code>
+     *
+     * <pre>
+     *    required string jobId = 2;
+     * </pre>
      */
     boolean hasFileName();
     /**
      * <code>required string fileName = 1;</code>
+     *
+     * <pre>
+     *    required string jobId = 2;
+     * </pre>
      */
     java.lang.String getFileName();
     /**
      * <code>required string fileName = 1;</code>
+     *
+     * <pre>
+     *    required string jobId = 2;
+     * </pre>
      */
     com.google.protobuf.ByteString
         getFileNameBytes();
-
-    // required string jobId = 2;
-    /**
-     * <code>required string jobId = 2;</code>
-     */
-    boolean hasJobId();
-    /**
-     * <code>required string jobId = 2;</code>
-     */
-    java.lang.String getJobId();
-    /**
-     * <code>required string jobId = 2;</code>
-     */
-    com.google.protobuf.ByteString
-        getJobIdBytes();
   }
   /**
    * Protobuf type {@code FileProcessRequest}
@@ -4867,11 +4864,6 @@ public final class ProtoMessages {
               fileName_ = input.readBytes();
               break;
             }
-            case 18: {
-              bitField0_ |= 0x00000002;
-              jobId_ = input.readBytes();
-              break;
-            }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
@@ -4917,12 +4909,20 @@ public final class ProtoMessages {
     private java.lang.Object fileName_;
     /**
      * <code>required string fileName = 1;</code>
+     *
+     * <pre>
+     *    required string jobId = 2;
+     * </pre>
      */
     public boolean hasFileName() {
       return ((bitField0_ & 0x00000001) == 0x00000001);
     }
     /**
      * <code>required string fileName = 1;</code>
+     *
+     * <pre>
+     *    required string jobId = 2;
+     * </pre>
      */
     public java.lang.String getFileName() {
       java.lang.Object ref = fileName_;
@@ -4940,6 +4940,10 @@ public final class ProtoMessages {
     }
     /**
      * <code>required string fileName = 1;</code>
+     *
+     * <pre>
+     *    required string jobId = 2;
+     * </pre>
      */
     public com.google.protobuf.ByteString
         getFileNameBytes() {
@@ -4955,52 +4959,8 @@ public final class ProtoMessages {
       }
     }
 
-    // required string jobId = 2;
-    public static final int JOBID_FIELD_NUMBER = 2;
-    private java.lang.Object jobId_;
-    /**
-     * <code>required string jobId = 2;</code>
-     */
-    public boolean hasJobId() {
-      return ((bitField0_ & 0x00000002) == 0x00000002);
-    }
-    /**
-     * <code>required string jobId = 2;</code>
-     */
-    public java.lang.String getJobId() {
-      java.lang.Object ref = jobId_;
-      if (ref instanceof java.lang.String) {
-        return (java.lang.String) ref;
-      } else {
-        com.google.protobuf.ByteString bs = 
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          jobId_ = s;
-        }
-        return s;
-      }
-    }
-    /**
-     * <code>required string jobId = 2;</code>
-     */
-    public com.google.protobuf.ByteString
-        getJobIdBytes() {
-      java.lang.Object ref = jobId_;
-      if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        jobId_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-
     private void initFields() {
       fileName_ = "";
-      jobId_ = "";
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -5008,10 +4968,6 @@ public final class ProtoMessages {
       if (isInitialized != -1) return isInitialized == 1;
 
       if (!hasFileName()) {
-        memoizedIsInitialized = 0;
-        return false;
-      }
-      if (!hasJobId()) {
         memoizedIsInitialized = 0;
         return false;
       }
@@ -5025,9 +4981,6 @@ public final class ProtoMessages {
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         output.writeBytes(1, getFileNameBytes());
       }
-      if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        output.writeBytes(2, getJobIdBytes());
-      }
       getUnknownFields().writeTo(output);
     }
 
@@ -5040,10 +4993,6 @@ public final class ProtoMessages {
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBytesSize(1, getFileNameBytes());
-      }
-      if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(2, getJobIdBytes());
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -5163,8 +5112,6 @@ public final class ProtoMessages {
         super.clear();
         fileName_ = "";
         bitField0_ = (bitField0_ & ~0x00000001);
-        jobId_ = "";
-        bitField0_ = (bitField0_ & ~0x00000002);
         return this;
       }
 
@@ -5197,10 +5144,6 @@ public final class ProtoMessages {
           to_bitField0_ |= 0x00000001;
         }
         result.fileName_ = fileName_;
-        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
-          to_bitField0_ |= 0x00000002;
-        }
-        result.jobId_ = jobId_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -5222,21 +5165,12 @@ public final class ProtoMessages {
           fileName_ = other.fileName_;
           onChanged();
         }
-        if (other.hasJobId()) {
-          bitField0_ |= 0x00000002;
-          jobId_ = other.jobId_;
-          onChanged();
-        }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
       }
 
       public final boolean isInitialized() {
         if (!hasFileName()) {
-          
-          return false;
-        }
-        if (!hasJobId()) {
           
           return false;
         }
@@ -5266,12 +5200,20 @@ public final class ProtoMessages {
       private java.lang.Object fileName_ = "";
       /**
        * <code>required string fileName = 1;</code>
+       *
+       * <pre>
+       *    required string jobId = 2;
+       * </pre>
        */
       public boolean hasFileName() {
         return ((bitField0_ & 0x00000001) == 0x00000001);
       }
       /**
        * <code>required string fileName = 1;</code>
+       *
+       * <pre>
+       *    required string jobId = 2;
+       * </pre>
        */
       public java.lang.String getFileName() {
         java.lang.Object ref = fileName_;
@@ -5286,6 +5228,10 @@ public final class ProtoMessages {
       }
       /**
        * <code>required string fileName = 1;</code>
+       *
+       * <pre>
+       *    required string jobId = 2;
+       * </pre>
        */
       public com.google.protobuf.ByteString
           getFileNameBytes() {
@@ -5302,6 +5248,10 @@ public final class ProtoMessages {
       }
       /**
        * <code>required string fileName = 1;</code>
+       *
+       * <pre>
+       *    required string jobId = 2;
+       * </pre>
        */
       public Builder setFileName(
           java.lang.String value) {
@@ -5315,6 +5265,10 @@ public final class ProtoMessages {
       }
       /**
        * <code>required string fileName = 1;</code>
+       *
+       * <pre>
+       *    required string jobId = 2;
+       * </pre>
        */
       public Builder clearFileName() {
         bitField0_ = (bitField0_ & ~0x00000001);
@@ -5324,6 +5278,10 @@ public final class ProtoMessages {
       }
       /**
        * <code>required string fileName = 1;</code>
+       *
+       * <pre>
+       *    required string jobId = 2;
+       * </pre>
        */
       public Builder setFileNameBytes(
           com.google.protobuf.ByteString value) {
@@ -5332,80 +5290,6 @@ public final class ProtoMessages {
   }
   bitField0_ |= 0x00000001;
         fileName_ = value;
-        onChanged();
-        return this;
-      }
-
-      // required string jobId = 2;
-      private java.lang.Object jobId_ = "";
-      /**
-       * <code>required string jobId = 2;</code>
-       */
-      public boolean hasJobId() {
-        return ((bitField0_ & 0x00000002) == 0x00000002);
-      }
-      /**
-       * <code>required string jobId = 2;</code>
-       */
-      public java.lang.String getJobId() {
-        java.lang.Object ref = jobId_;
-        if (!(ref instanceof java.lang.String)) {
-          java.lang.String s = ((com.google.protobuf.ByteString) ref)
-              .toStringUtf8();
-          jobId_ = s;
-          return s;
-        } else {
-          return (java.lang.String) ref;
-        }
-      }
-      /**
-       * <code>required string jobId = 2;</code>
-       */
-      public com.google.protobuf.ByteString
-          getJobIdBytes() {
-        java.lang.Object ref = jobId_;
-        if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
-              com.google.protobuf.ByteString.copyFromUtf8(
-                  (java.lang.String) ref);
-          jobId_ = b;
-          return b;
-        } else {
-          return (com.google.protobuf.ByteString) ref;
-        }
-      }
-      /**
-       * <code>required string jobId = 2;</code>
-       */
-      public Builder setJobId(
-          java.lang.String value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  bitField0_ |= 0x00000002;
-        jobId_ = value;
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>required string jobId = 2;</code>
-       */
-      public Builder clearJobId() {
-        bitField0_ = (bitField0_ & ~0x00000002);
-        jobId_ = getDefaultInstance().getJobId();
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>required string jobId = 2;</code>
-       */
-      public Builder setJobIdBytes(
-          com.google.protobuf.ByteString value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  bitField0_ |= 0x00000002;
-        jobId_ = value;
         onChanged();
         return this;
       }
@@ -7375,15 +7259,15 @@ public final class ProtoMessages {
       "\"\'\n\022ChunkDeleteRequest\022\021\n\tchunkName\030\001 \002(" +
       "\003\"%\n\021FileDeleteRequest\022\020\n\010fileName\030\001 \002(\t" +
       "\"\"\n\023FileDownloadRequest\022\013\n\003url\030\001 \002(\t\"!\n\020",
-      "JobDeleteRequest\022\r\n\005jobId\030\001 \002(\t\"5\n\022FileP" +
-      "rocessRequest\022\020\n\010fileName\030\001 \002(\t\022\r\n\005jobId" +
-      "\030\002 \002(\t\"\264\001\n\023ChunkProcessRequest\022\021\n\tchunkN" +
-      "ame\030\001 \002(\003\022\025\n\rnextChunkName\030\002 \002(\003\022\023\n\013node" +
-      "Address\030\003 \002(\t\022\027\n\017nextNodeAddress\030\004 \002(\t\022\016" +
-      "\n\006offset\030\005 \002(\005\022\022\n\nnextOffset\030\006 \002(\005\022\022\n\nch" +
-      "unkCount\030\007 \002(\005\022\r\n\005jobId\030\010 \002(\t\"\020\n\016JobList" +
-      "Request\"\021\n\017FileListRequestB$\n\023ru.ownrobo" +
-      "t.tractorB\rProtoMessages"
+      "JobDeleteRequest\022\r\n\005jobId\030\001 \002(\t\"&\n\022FileP" +
+      "rocessRequest\022\020\n\010fileName\030\001 \002(\t\"\264\001\n\023Chun" +
+      "kProcessRequest\022\021\n\tchunkName\030\001 \002(\003\022\025\n\rne" +
+      "xtChunkName\030\002 \002(\003\022\023\n\013nodeAddress\030\003 \002(\t\022\027" +
+      "\n\017nextNodeAddress\030\004 \002(\t\022\016\n\006offset\030\005 \002(\005\022" +
+      "\022\n\nnextOffset\030\006 \002(\005\022\022\n\nchunkCount\030\007 \002(\005\022" +
+      "\r\n\005jobId\030\010 \002(\t\"\020\n\016JobListRequest\"\021\n\017File" +
+      "ListRequestB$\n\023ru.ownrobot.tractorB\rProt" +
+      "oMessages"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -7449,7 +7333,7 @@ public final class ProtoMessages {
           internal_static_FileProcessRequest_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_FileProcessRequest_descriptor,
-              new java.lang.String[] { "FileName", "JobId", });
+              new java.lang.String[] { "FileName", });
           internal_static_ChunkProcessRequest_descriptor =
             getDescriptor().getMessageTypes().get(10);
           internal_static_ChunkProcessRequest_fieldAccessorTable = new

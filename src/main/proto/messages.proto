@@ -46,7 +46,7 @@ message JobDeleteRequest{
 
 message FileProcessRequest{
     required string fileName = 1;
-    required string jobId = 2;
+//    required string jobId = 2;
 }
 
 message ChunkProcessRequest{
