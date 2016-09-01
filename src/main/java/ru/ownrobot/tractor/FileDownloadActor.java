@@ -20,6 +20,7 @@ import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -38,6 +39,8 @@ public class FileDownloadActor extends UntypedActor {
 
 
     private ActorSelection selectJobTracker(String jobId) {
+        Collections.sort(jobTrackers, (ActorSelection r1, ActorSelection r2) ->
+                Integer.compare(r1.hashCode(),(r2.hashCode())));
         return jobTrackers.get(Math.abs(jobId.hashCode() % jobTrackers.size()));
     }
 

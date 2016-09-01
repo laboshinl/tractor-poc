@@ -1,5 +1,6 @@
 package ru.ownrobot.tractor;
 
+import akka.actor.ActorSelection;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -13,10 +14,10 @@ public class AggregateActor extends UntypedActor {
     private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
     private final HashMap<String, HashMap<Long, FlowStat>> jobs = new HashMap<>();
-
+    private final ActorSelection reducer = context().system().actorSelection("akka.tcp://ClusterSystem@172.16.1.92:2551/user/reducer");
     @Override
     public void onReceive(Object message) throws Throwable {
-
+       // log.error("address = {}", reducer.toString() );
         if (message instanceof TractorPacketMsg){
             TractorPacketMsg tractorPacketMsg = (TractorPacketMsg) message;
             HashMap<Long, FlowStat> flows = jobs.containsKey(tractorPacketMsg.getJobId())? jobs.get(tractorPacketMsg.getJobId()) : new HashMap<>();
@@ -28,13 +29,15 @@ public class AggregateActor extends UntypedActor {
         else if (message instanceof JobFinishedMsg){
             String jobId = ((JobFinishedMsg) message).getJobId();
             if(jobs.containsKey(jobId)) {
-                jobs.get(jobId).entrySet().stream()
-                        .sorted(Map.Entry.<Long, FlowStat>comparingByValue().reversed())
-                        .limit(10)
-                        .forEach(v -> System.out.println(v.getValue()));
+                reducer.tell(new JobResult(jobId, jobs.get(jobId)),self());
+//                jobs.get(jobId).entrySet().stream()
+//                        .sorted(Map.Entry.<Long, FlowStat>comparingByValue().reversed())
+//                        .limit(10)
+//                        .forEach(v -> System.out.println(v.getValue()));
                 jobs.remove(jobId);
                 //(jobs.get(jobId), self());
-            }
+            } else
+                reducer.tell(new JobResult(jobId, new HashMap<Long, FlowStat>()),self());
         } else {
             log.error("Unhandled message of type {}", message.getClass());
             unhandled(message);

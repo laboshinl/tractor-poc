@@ -53,6 +53,7 @@ public class HttpServer extends AllDirectives  {
 
         system.actorOf(Props.create(DatabaseActor.class),"database");
         system.actorOf(Props.create(JobTrackActor.class), "jobTracker");
+        system.actorOf(Props.create(ReduceActor.class), "reducer");
 
         for (int i=0; i< numWorkers; i++) {
             system.actorOf(Props.create(SendBytesActor.class),"bytes" + i);

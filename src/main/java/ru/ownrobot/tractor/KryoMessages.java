@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 public class KryoMessages {
 
     public static class JobResult implements Serializable{
-        public JobResult(String jobId, HashMap<String, FlowStat> flows) {
+        public JobResult(String jobId, HashMap<Long, FlowStat> flows) {
             this.jobId = jobId;
             this.flows = flows;
         }
@@ -28,16 +28,16 @@ public class KryoMessages {
             this.jobId = jobId;
         }
 
-        public HashMap<String, FlowStat> getFlows() {
+        public HashMap<Long, FlowStat> getFlows() {
             return flows;
         }
 
-        public void setFlows(HashMap<String, FlowStat> flows) {
+        public void setFlows(HashMap<Long, FlowStat> flows) {
             this.flows = flows;
         }
 
         private String jobId;
-        private HashMap<String,FlowStat> flows;
+        private HashMap<Long,FlowStat> flows;
 
     }
 
@@ -159,8 +159,12 @@ public class KryoMessages {
         }
 
         public void addWorker(ActorRef worker) {
-            if (!this.workers.contains(worker)) {
+            if (this.workers.contains(worker)) {
+                System.out.println("already exist");
+            }else {
                 this.workers.add(worker);
+                System.out.println(this.workers.toString());
+                //System.out.println(workers.toArray());
             }
         }
 
@@ -422,41 +426,41 @@ public class KryoMessages {
 //            * Flow start time (as a Unix timestamp)
 
     public static class FlowStat implements Serializable, Comparable<FlowStat> {
-        public String serverIp;
-        public String clientIp;
-        public Long totalCount;
-        public Long accSize;
+        private String serverIp;
+        private String clientIp;
+        private Long totalCount;
+        private Long accSize;
 
-        public Long clientCount;
-        public Long serverCount;
+        private Long clientCount;
+        private Long serverCount;
 
-        public Integer serverSentMax;
-        public Integer clientSentMax;
-        public Integer serverSentMin;
-        public Integer clientSentMin;
+        private Integer serverSentMax;
+        private Integer clientSentMax;
+        private Integer serverSentMin;
+        private Integer clientSentMin;
 
-        public HashMap<String, Integer> protocols;
+        private HashMap<String, Integer> protocols;
 
-        public Date firstTime;
-        public Date lastTime;
+        private Date firstTime;
+        private Date lastTime;
 
-        public String proto;
+        private String proto;
 
-        public Long synCount;
-        public Long rstCount;
-        public Long finCount;
-        public Long ackCount;
-        public Long pushCount;
+        private Long synCount;
+        private Long rstCount;
+        private Long finCount;
+        private Long ackCount;
+        private Long pushCount;
 
-        public Integer minWindowSize;
-        public Integer maxWindowSize;
+        private Integer minWindowSize;
+        private Integer maxWindowSize;
 
-        public Long accWindowSize;
+        private Long accWindowSize;
 
-        public Integer clientPort;
-        public Integer serverPort;
-        public Long accClientSize;
-        public Long accServerSize;
+        private Integer clientPort;
+        private Integer serverPort;
+        private Long accClientSize;
+        private Long accServerSize;
 
         public FlowStat() {
             this.totalCount = new Long(0);

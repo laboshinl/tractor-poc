@@ -6,6 +6,7 @@ import akka.actor.UntypedActor;
 import akka.cluster.Cluster;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.pattern.Patterns;
 import akka.routing.ActorSelectionRoutee;
 import akka.routing.RoundRobinRoutingLogic;
 import akka.routing.Routee;
@@ -18,6 +19,8 @@ import java.util.*;
 
 import ru.ownrobot.tractor.ProtoMessages.*;
 import ru.ownrobot.tractor.KryoMessages.*;
+import scala.concurrent.Await;
+import scala.concurrent.duration.Duration;
 
 
 public class DatabaseActor extends UntypedActor {
@@ -35,6 +38,8 @@ public class DatabaseActor extends UntypedActor {
 
 
     private ActorSelection selectJobTracker(String jobId) {
+        Collections.sort(jobTrackers, (ActorSelection r1, ActorSelection r2) ->
+                Integer.compare(r1.hashCode(),(r2.hashCode())));
         return jobTrackers.get(Math.abs(jobId.hashCode() % jobTrackers.size()));
     }
 
@@ -135,7 +140,8 @@ public class DatabaseActor extends UntypedActor {
 
             DBCursor result = collection.find(new BasicDBObject("fileName", fileName)).sort(new BasicDBObject("timestamp", 1));
 
-            selectJobTracker(jobId).tell(NewJobMsg.newBuilder().setJobId(jobId).setCount(result.length()).build(), self());
+            Await.result(Patterns.ask(selectJobTracker(jobId), NewJobMsg.newBuilder().setJobId(jobId).setCount(result.length()).build(), 10000), Duration.apply("10 sec"));
+        //selectJobTracker(jobId).tell(NewJobMsg.newBuilder().setJobId(jobId).setCount(result.length()).build(), self());
 
             if (result.length() != 0) {
                 List<DBObject> array = result.toArray();

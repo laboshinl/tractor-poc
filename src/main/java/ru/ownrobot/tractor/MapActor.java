@@ -23,10 +23,7 @@ import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 import ru.ownrobot.tractor.KryoMessages.*;
 import ru.ownrobot.tractor.ProtoMessages.*;
@@ -67,6 +64,8 @@ public class MapActor extends UntypedActor {
     private final List<ActorSelection> nodes = createRouter();
 
     private ActorSelection selectJobTracker(String jobId) {
+        Collections.sort(jobTrackers, (ActorSelection r1, ActorSelection r2) ->
+                Integer.compare(r1.hashCode(),(r2.hashCode())));
         return jobTrackers.get(Math.abs(jobId.hashCode() % jobTrackers.size()));
     }
 
@@ -84,10 +83,10 @@ public class MapActor extends UntypedActor {
         }
         Cluster cluster = Cluster.get(getContext().system());
         cluster.state().getMembers().forEach(m -> {
-            for (int i =0; i< config.getInt("workers.count"); i++) {
+            jobTrackers.add(system.actorSelection(m.address() + "/user/jobTracker"));
+            for (int i = 0; i < config.getInt("workers.count"); i++) {
                 //if (m.hasRole("worker")) {
-                    routees.add(system.actorSelection(m.address() + "/user/aggregator" + i));
-                    jobTrackers.add(system.actorSelection(m.address() + "/user/jobTracker"));
+                routees.add(system.actorSelection(m.address() + "/user/aggregator" + i));
                 //}
             }
         });
@@ -272,9 +271,9 @@ public class MapActor extends UntypedActor {
             selectJobTracker(job.getJobId()).tell(JobStatusMsg.newBuilder().setJobId(job.getJobId()).setFinished(true).build(), self());
             //nodes.forEach(i -> i.tell(JobStatusMsg.newBuilder().setJobId(job.getJobId()).setFinished(true).build(), self()));
 
-        }else if (message instanceof JobFinishedMsg){
-            String jobId = ((JobFinishedMsg) message).getJobId();
-            nodes.forEach(i->i.tell(message,self()));
+//        }else if (message instanceof JobFinishedMsg){
+//            String jobId = ((JobFinishedMsg) message).getJobId();
+//            nodes.forEach(i->i.tell(message,self()));
             //selectJobTracker(jobId).tell(message, self());
         }
         else{
