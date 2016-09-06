@@ -5,6 +5,7 @@ import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.actor.UntypedActor;
 import akka.cluster.Cluster;
+import akka.cluster.ClusterEvent;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.routing.ActorSelectionRoutee;
@@ -34,41 +35,9 @@ public class FileDownloadActor extends UntypedActor {
     private final ActorSystem system = getContext().system();
     private final Cluster cluster = Cluster.get(system);
 
-    private final List<ActorSelection> jobTrackers = new ArrayList<>();
-    private final List<Router> routers = createRouters();
+    //private final List<ActorSelection> jobTrackers = new ArrayList<>();
 
-
-    private ActorSelection selectJobTracker(String jobId) {
-        Collections.sort(jobTrackers, (ActorSelection r1, ActorSelection r2) ->
-                Integer.compare(r1.hashCode(),(r2.hashCode())));
-        return jobTrackers.get(Math.abs(jobId.hashCode() % jobTrackers.size()));
-    }
-
-    private List<Router> createRouters() {
-
-        try {
-            Thread.sleep(10000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        Integer numWorkers = config.getInt("workers.count");
-        List<Routee> fileDownload = new ArrayList<>();
-        List<Routee> chunkSave = new ArrayList<>();
-        cluster.state().getMembers().forEach(m -> {
-//            if (m.hasRole("worker"))
-            jobTrackers.add(system.actorSelection(m.address() + "/user/jobTracker"));
-            for (int i = 0; i < numWorkers; i++) {
-                chunkSave.add(new ActorSelectionRoutee(system.actorSelection(m.address() + "/user/filesystem" + i)));
-                fileDownload.add(new ActorSelectionRoutee(system.actorSelection(m.address() + "/user/download" + i)));
-
-            }
-        });
-        List<Router> routers = new ArrayList<>();
-        routers.add(0, new Router(new RoundRobinRoutingLogic(), fileDownload));
-        routers.add(1, new Router(new RoundRobinRoutingLogic(), chunkSave));
-        return routers;
-    }
+    private RoutingUtils router = new RoutingUtils(system);
 
     private int getContentLength(String fileUrl) throws IOException {
         URL url = new URL(fileUrl);
@@ -83,14 +52,13 @@ public class FileDownloadActor extends UntypedActor {
             int chunkCount = fileSize / chunkSize;
 
             NewJobMsg newJob = NewJobMsg.newBuilder().setJobId(jobId).setCount(chunkCount).build();
-            selectJobTracker(jobId).tell(newJob, self());
+            router.selectTracker(jobId).tell(newJob, self());
 
             for (int i = 0; i < chunkCount; i++) {
                 int startPos = chunkSize * i;
                 int endPos = (i == chunkCount - 1) ? fileSize
                         : (chunkSize * (i + 1) - 1);
-
-                routers.get(0).route(ChunkDownloadRequest.newBuilder().
+                router.getDownloaderRouter().route(ChunkDownloadRequest.newBuilder().
                         setUrl(url).
                         setStartPos(startPos).
                         setEndPos(endPos).
@@ -118,22 +86,26 @@ public class FileDownloadActor extends UntypedActor {
 
             akka.util.ByteString chunkData = akka.util.ByteString.fromArray(array);
 
-            routers.get(1).route(new FileChunk(request.getJobId(), request.getUrl(), chunkData), self());
+            router.getChunksaverRouter().route(new FileChunk(request.getJobId(), request.getUrl(), chunkData), self());
 
         } else if (message instanceof FileDownloadRequest) {
             FileDownloadRequest request = (FileDownloadRequest) message;
             splitDownload(config.getInt("filesystem.chunksize") * (1024 * 1024), request.getUrl());
         } else if (message instanceof JobStatusMsg) {
             JobStatusMsg jobStatus = (JobStatusMsg) message;
-            selectJobTracker(jobStatus.getJobId()).tell(message, sender());
-        } else {
-            log.error("Unhandled message of type {}", message.getClass());
+            router.selectTracker(jobStatus.getJobId()).tell(message, sender());
+        } else if (message instanceof ClusterEvent.MemberEvent){
+            router.updateMembers();
+        }else {
+            log.error("Unhandled message of type {} from {}", message.getClass(), getSender().path());
             unhandled(message);
         }
 
     }
 
     public void preStart() {
+        cluster.subscribe(getSelf(), ClusterEvent.initialStateAsEvents(),
+                ClusterEvent.MemberEvent.class, ClusterEvent.UnreachableMember.class);
         log.info("Download actor {} started", self().path().address());
     }
 

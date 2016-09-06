@@ -159,11 +159,11 @@ public class KryoMessages {
         }
 
         public void addWorker(ActorRef worker) {
-            if (this.workers.contains(worker)) {
-                System.out.println("already exist");
-            }else {
+            if (! this.workers.contains(worker)) {
+                //System.out.println("already exist");
+//            }else {
                 this.workers.add(worker);
-                System.out.println(this.workers.toString());
+//                System.out.println(this.workers.toString());
                 //System.out.println(workers.toArray());
             }
         }

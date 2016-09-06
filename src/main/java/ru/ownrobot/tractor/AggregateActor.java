@@ -1,7 +1,8 @@
 package ru.ownrobot.tractor;
 
-import akka.actor.ActorSelection;
 import akka.actor.UntypedActor;
+import akka.cluster.Cluster;
+import akka.cluster.ClusterEvent;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import ru.ownrobot.tractor.ProtoMessages.*;
@@ -12,12 +13,11 @@ import java.util.*;
 
 public class AggregateActor extends UntypedActor {
     private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
-
     private final HashMap<String, HashMap<Long, FlowStat>> jobs = new HashMap<>();
-    private final ActorSelection reducer = context().system().actorSelection("akka.tcp://ClusterSystem@172.16.1.92:2551/user/reducer");
+    private final RoutingUtils routers = new RoutingUtils(getContext().system());
+
     @Override
     public void onReceive(Object message) throws Throwable {
-       // log.error("address = {}", reducer.toString() );
         if (message instanceof TractorPacketMsg){
             TractorPacketMsg tractorPacketMsg = (TractorPacketMsg) message;
             HashMap<Long, FlowStat> flows = jobs.containsKey(tractorPacketMsg.getJobId())? jobs.get(tractorPacketMsg.getJobId()) : new HashMap<>();
@@ -29,21 +29,20 @@ public class AggregateActor extends UntypedActor {
         else if (message instanceof JobFinishedMsg){
             String jobId = ((JobFinishedMsg) message).getJobId();
             if(jobs.containsKey(jobId)) {
-                reducer.tell(new JobResult(jobId, jobs.get(jobId)),self());
-//                jobs.get(jobId).entrySet().stream()
-//                        .sorted(Map.Entry.<Long, FlowStat>comparingByValue().reversed())
-//                        .limit(10)
-//                        .forEach(v -> System.out.println(v.getValue()));
+                routers.selectReducer(jobId).tell(new JobResult(jobId, jobs.get(jobId)), self());
                 jobs.remove(jobId);
-                //(jobs.get(jobId), self());
             } else
-                reducer.tell(new JobResult(jobId, new HashMap<Long, FlowStat>()),self());
+                routers.selectReducer(jobId).tell(new JobResult(jobId, jobs.get(jobId)), self());
+        } else if (message instanceof ClusterEvent.MemberEvent){
+            routers.updateMembers();
         } else {
             log.error("Unhandled message of type {}", message.getClass());
             unhandled(message);
         }
     }
     public void preStart(){
+       Cluster.get(getContext().system()).subscribe(getSelf(), ClusterEvent.initialStateAsEvents(),
+               ClusterEvent.MemberEvent.class, ClusterEvent.UnreachableMember.class);
         log.info("Aggregate actor started");
     }
     public void postStop(){

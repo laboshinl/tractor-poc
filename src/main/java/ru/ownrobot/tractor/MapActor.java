@@ -5,6 +5,7 @@ import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.actor.UntypedActor;
 import akka.cluster.Cluster;
+import akka.cluster.ClusterEvent;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.pattern.Patterns;
@@ -55,44 +56,46 @@ class RecordStatus {
         this.nextRecord = nextRecord;
     }
 }
+
 public class MapActor extends UntypedActor {
     private final Config config = ConfigFactory.load();
     private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
     private final Random random = new Random();
     private final List<ActorSelection> jobTrackers = new ArrayList<>();
 
-    private final List<ActorSelection> nodes = createRouter();
+//    private final List<ActorSelection> nodes = createRouter();
+    private final RoutingUtils router = new RoutingUtils(getContext().system());
 
-    private ActorSelection selectJobTracker(String jobId) {
-        Collections.sort(jobTrackers, (ActorSelection r1, ActorSelection r2) ->
-                Integer.compare(r1.hashCode(),(r2.hashCode())));
-        return jobTrackers.get(Math.abs(jobId.hashCode() % jobTrackers.size()));
-    }
-
+//    private ActorSelection selectJobTracker(String jobId) {
+//        Collections.sort(jobTrackers, (ActorSelection r1, ActorSelection r2) ->
+//                Integer.compare(r1.hashCode(),(r2.hashCode())));
+//        return jobTrackers.get(Math.abs(jobId.hashCode() % jobTrackers.size()));
+//    }
+//
     private int random() {
         return Math.abs(random.nextInt()) % config.getInt("workers.count");
     }
 
-    private List<ActorSelection> createRouter(){
-        final List<ActorSelection> routees = new ArrayList<>();
-        ActorSystem system = getContext().system();
-        try {
-            Thread.sleep(10000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        Cluster cluster = Cluster.get(getContext().system());
-        cluster.state().getMembers().forEach(m -> {
-            jobTrackers.add(system.actorSelection(m.address() + "/user/jobTracker"));
-            for (int i = 0; i < config.getInt("workers.count"); i++) {
-                //if (m.hasRole("worker")) {
-                routees.add(system.actorSelection(m.address() + "/user/aggregator" + i));
-                //}
-            }
-        });
-
-        return routees;
-    }
+//    private List<ActorSelection> createRouter(){
+//        final List<ActorSelection> routees = new ArrayList<>();
+//        ActorSystem system = getContext().system();
+//        try {
+//            Thread.sleep(10000);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
+//        Cluster cluster = Cluster.get(getContext().system());
+//        cluster.state().getMembers().forEach(m -> {
+//            jobTrackers.add(system.actorSelection(m.address() + "/user/jobTracker"));
+//            for (int i = 0; i < config.getInt("workers.count"); i++) {
+//                //if (m.hasRole("worker")) {
+//                routees.add(system.actorSelection(m.address() + "/user/aggregator" + i));
+//                //}
+//            }
+//        });
+//
+//        return routees;
+//    }
     private String formIpaddress(byte[] packet) {
         return String.format("%s.%s.%s.%s", packet[0] & 0xFF,
                 packet[1] & 0xFF,
@@ -166,8 +169,10 @@ public class MapActor extends UntypedActor {
                             "TCP", formIpaddress(ipSrc), formIpaddress(ipDst), portSrc, portDst, incl_len,
                             new Date(ts_sec * 1000L + ts_usec / 1000), protocol, window);
                     //"TCP", formIpaddress(ipSrc), src_port, formIpaddress(ipDst), dst_port, incl_len, new Date(ts_sec * 1000L + ts_usec / 1000),ackset, pushset, rstset, synset, finset, window, protocol);
-                    Long id = Math.abs(flowHash) % nodes.size();
-                    nodes.get(toIntExact(id)).tell(new TractorPacketMsg(jobId, packet, flowHash), self());
+                    //Long id = Math.abs(flowHash) % nodes.size();
+                    //nodes.get(toIntExact(id)).tell(new TractorPacketMsg(jobId, packet, flowHash), self());
+                    String flowId = flowHash.toString();
+                    router.selectAggregator(flowId).tell(new TractorPacketMsg(jobId, packet, flowHash), self());
 
                 }
                 return new RecordStatus(true, file.splitAt(incl_len + pcapHeaderLen)._2());
@@ -202,7 +207,7 @@ public class MapActor extends UntypedActor {
             }
             else if (payBytes[0] == (byte) 0xff && payBytes[3] == (byte) 0xff  ){
                 //Not Working!
-                System.out.println("Telnet");
+                //System.out.println("Telnet");
                 //else if (payload.contains(ByteString.fromArray(new byte[]{(byte)0x80}))){
                 return "Telnet";
             }
@@ -232,7 +237,7 @@ public class MapActor extends UntypedActor {
 
             Duration duration = Duration.apply("60 sec");
             if ( !job.getNextNodeAddress().isEmpty()) {
-                lostBytes = Patterns.ask(getContext().system().actorSelection(job.getNextNodeAddress() + "/user/bytes" + random()), ExtraBytesRequest.newBuilder().setChunkId(job.getNextChunkName()).setCount(job.getNextOffset()).build(), 60000);
+                lostBytes = Patterns.ask(getContext().system().actorSelection(job.getNextNodeAddress() + "/user/bytesender" + random()), ExtraBytesRequest.newBuilder().setChunkId(job.getNextChunkName()).setCount(job.getNextOffset()).build(), 60000);
             }
 
             Long chunkname = job.getChunkName();
@@ -268,13 +273,11 @@ public class MapActor extends UntypedActor {
                 if (!parsePacket(lastRecord,job.getJobId()).isFinished())
                     log.debug("corrupted or ZeroSize last packet");
             }
-            selectJobTracker(job.getJobId()).tell(JobStatusMsg.newBuilder().setJobId(job.getJobId()).setFinished(true).build(), self());
-            //nodes.forEach(i -> i.tell(JobStatusMsg.newBuilder().setJobId(job.getJobId()).setFinished(true).build(), self()));
+            router.selectTracker(job.getJobId()).tell(JobStatusMsg.newBuilder().setJobId(job.getJobId()).setFinished(true).build(), self());
 
-//        }else if (message instanceof JobFinishedMsg){
-//            String jobId = ((JobFinishedMsg) message).getJobId();
-//            nodes.forEach(i->i.tell(message,self()));
-            //selectJobTracker(jobId).tell(message, self());
+        }else if (message instanceof ClusterEvent.MemberEvent){
+            router.updateMembers();
+
         }
         else{
             log.error("Unhandled message of type {}", message.getClass());
@@ -282,6 +285,8 @@ public class MapActor extends UntypedActor {
         }
     }
     public void preStart(){
+        Cluster.get(getContext().system()).subscribe(getSelf(), ClusterEvent.initialStateAsEvents(),
+                ClusterEvent.MemberEvent.class, ClusterEvent.UnreachableMember.class);
         log.info("Map actor started");
     }
     public void postStop(){

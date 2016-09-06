@@ -10,6 +10,7 @@ import java.util.*;
 
 
 import akka.cluster.Cluster;
+import akka.cluster.ClusterEvent;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import com.itextpdf.awt.DefaultFontMapper;
@@ -43,25 +44,26 @@ public class ReduceActor extends UntypedActor {
     private final ActorSystem system = getContext().system();
     private final Cluster cluster = Cluster.get(system);
 
-    private final Integer aggregatorCount = getAggregatorCount();
-
-    private Integer getAggregatorCount() {
-
-        try {
-            Thread.sleep(10000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        Integer aggregatorCount = cluster.state().members().size() * config.getInt("workers.count");
-//        cluster.state().getMembers().forEach(m -> {
-//            for (int i =0; i< config.getInt("workers.count"); i++) {
-//                aggregatorCount + 1;
-//            }
-//        });
-
-        return aggregatorCount;
-    }
+    private final RoutingUtils router = new RoutingUtils(system);
+//    private final Integer aggregatorCount = getAggregatorCount();
+//
+////    private Integer getAggregatorCount() {
+////
+////        try {
+////            Thread.sleep(10000);
+////        } catch (InterruptedException e) {
+////            e.printStackTrace();
+////        }
+////
+////        Integer aggregatorCount = cluster.state().members().size() * config.getInt("workers.count");
+//////        cluster.state().getMembers().forEach(m -> {
+//////            for (int i =0; i< config.getInt("workers.count"); i++) {
+//////                aggregatorCount + 1;
+//////            }
+//////        });
+////
+////        return aggregatorCount;
+////    }
 
     private void generatePdf(HashMap<Long, KryoMessages.FlowStat> result, int width, int height, String fileName) {
         DefaultPieDataset dataSet = new DefaultPieDataset();
@@ -137,19 +139,22 @@ public class ReduceActor extends UntypedActor {
     @Override
     public void onReceive(Object message) throws Throwable {
         if(message instanceof KryoMessages.JobResult){
-            log.error("Im here!!");
             KryoMessages.JobResult result = (KryoMessages.JobResult) message;
             HashMap<Long, KryoMessages.FlowStat> aggregatedResult = aggregatedResults.containsKey(result.getJobId()) ? aggregatedResults.get(result.getJobId()) : new HashMap<>();
-            aggregatedResult.putAll(result.getFlows());
+            if (result.getFlows() != null)
+                aggregatedResult.putAll(result.getFlows());
             aggregatedResults.put(result.getJobId(), aggregatedResult);
             Integer count = counter.containsKey(result.getJobId()) ? counter.get(result.getJobId()) : 0;
             count ++;
             counter.put(result.getJobId(), count);
-            if (count == aggregatorCount) {
+            if (count == router.getAggregators().size()) {
                 log.error("Saving file!!!!!!!!!!!");
                 generatePdf(aggregatedResult, 500, 400, config.getString("filesystem.path") + File.separator + result.getJobId() + ".pdf");
                 aggregatedResults.remove(result.getJobId());
             }
+        }
+     else if (message instanceof ClusterEvent.MemberEvent) {
+            router.updateMembers();
         }
         else {
             log.error("Unhandled message of type {}", message.getClass());
@@ -157,6 +162,8 @@ public class ReduceActor extends UntypedActor {
         }
     }
     public void preStart(){
+        cluster.subscribe(getSelf(), ClusterEvent.initialStateAsEvents(),
+                ClusterEvent.MemberEvent.class, ClusterEvent.UnreachableMember.class);
         log.info("Reduce actor started");
     }
     public void postStop(){

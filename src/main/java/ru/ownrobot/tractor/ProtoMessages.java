@@ -35,6 +35,16 @@ public final class ProtoMessages {
      * <code>required bool finished = 2;</code>
      */
     boolean getFinished();
+
+    // optional int32 progress = 3;
+    /**
+     * <code>optional int32 progress = 3;</code>
+     */
+    boolean hasProgress();
+    /**
+     * <code>optional int32 progress = 3;</code>
+     */
+    int getProgress();
   }
   /**
    * Protobuf type {@code JobStatusMsg}
@@ -95,6 +105,11 @@ public final class ProtoMessages {
             case 16: {
               bitField0_ |= 0x00000002;
               finished_ = input.readBool();
+              break;
+            }
+            case 24: {
+              bitField0_ |= 0x00000004;
+              progress_ = input.readInt32();
               break;
             }
           }
@@ -196,9 +211,26 @@ public final class ProtoMessages {
       return finished_;
     }
 
+    // optional int32 progress = 3;
+    public static final int PROGRESS_FIELD_NUMBER = 3;
+    private int progress_;
+    /**
+     * <code>optional int32 progress = 3;</code>
+     */
+    public boolean hasProgress() {
+      return ((bitField0_ & 0x00000004) == 0x00000004);
+    }
+    /**
+     * <code>optional int32 progress = 3;</code>
+     */
+    public int getProgress() {
+      return progress_;
+    }
+
     private void initFields() {
       jobId_ = "";
       finished_ = false;
+      progress_ = 0;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -226,6 +258,9 @@ public final class ProtoMessages {
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         output.writeBool(2, finished_);
       }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        output.writeInt32(3, progress_);
+      }
       getUnknownFields().writeTo(output);
     }
 
@@ -242,6 +277,10 @@ public final class ProtoMessages {
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(2, finished_);
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(3, progress_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -363,6 +402,8 @@ public final class ProtoMessages {
         bitField0_ = (bitField0_ & ~0x00000001);
         finished_ = false;
         bitField0_ = (bitField0_ & ~0x00000002);
+        progress_ = 0;
+        bitField0_ = (bitField0_ & ~0x00000004);
         return this;
       }
 
@@ -399,6 +440,10 @@ public final class ProtoMessages {
           to_bitField0_ |= 0x00000002;
         }
         result.finished_ = finished_;
+        if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
+          to_bitField0_ |= 0x00000004;
+        }
+        result.progress_ = progress_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -422,6 +467,9 @@ public final class ProtoMessages {
         }
         if (other.hasFinished()) {
           setFinished(other.getFinished());
+        }
+        if (other.hasProgress()) {
+          setProgress(other.getProgress());
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -561,6 +609,39 @@ public final class ProtoMessages {
       public Builder clearFinished() {
         bitField0_ = (bitField0_ & ~0x00000002);
         finished_ = false;
+        onChanged();
+        return this;
+      }
+
+      // optional int32 progress = 3;
+      private int progress_ ;
+      /**
+       * <code>optional int32 progress = 3;</code>
+       */
+      public boolean hasProgress() {
+        return ((bitField0_ & 0x00000004) == 0x00000004);
+      }
+      /**
+       * <code>optional int32 progress = 3;</code>
+       */
+      public int getProgress() {
+        return progress_;
+      }
+      /**
+       * <code>optional int32 progress = 3;</code>
+       */
+      public Builder setProgress(int value) {
+        bitField0_ |= 0x00000004;
+        progress_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional int32 progress = 3;</code>
+       */
+      public Builder clearProgress() {
+        bitField0_ = (bitField0_ & ~0x00000004);
+        progress_ = 0;
         onChanged();
         return this;
       }
@@ -7249,25 +7330,25 @@ public final class ProtoMessages {
       descriptor;
   static {
     java.lang.String[] descriptorData = {
-      "\n\016messages.proto\"/\n\014JobStatusMsg\022\r\n\005jobI" +
-      "d\030\001 \002(\t\022\020\n\010finished\030\002 \002(\010\")\n\tNewJobMsg\022\r" +
-      "\n\005jobId\030\001 \002(\t\022\r\n\005count\030\002 \002(\005\"\037\n\016JobFinis" +
-      "hedMsg\022\r\n\005jobId\030\001 \002(\t\"3\n\021ExtraBytesReque" +
-      "st\022\017\n\007chunkId\030\001 \002(\003\022\r\n\005count\030\002 \002(\005\"T\n\024Ch" +
-      "unkDownloadRequest\022\013\n\003url\030\001 \002(\t\022\020\n\010start" +
-      "Pos\030\002 \002(\005\022\016\n\006endPos\030\003 \002(\005\022\r\n\005jobId\030\004 \002(\t" +
-      "\"\'\n\022ChunkDeleteRequest\022\021\n\tchunkName\030\001 \002(" +
-      "\003\"%\n\021FileDeleteRequest\022\020\n\010fileName\030\001 \002(\t" +
-      "\"\"\n\023FileDownloadRequest\022\013\n\003url\030\001 \002(\t\"!\n\020",
-      "JobDeleteRequest\022\r\n\005jobId\030\001 \002(\t\"&\n\022FileP" +
-      "rocessRequest\022\020\n\010fileName\030\001 \002(\t\"\264\001\n\023Chun" +
-      "kProcessRequest\022\021\n\tchunkName\030\001 \002(\003\022\025\n\rne" +
-      "xtChunkName\030\002 \002(\003\022\023\n\013nodeAddress\030\003 \002(\t\022\027" +
-      "\n\017nextNodeAddress\030\004 \002(\t\022\016\n\006offset\030\005 \002(\005\022" +
-      "\022\n\nnextOffset\030\006 \002(\005\022\022\n\nchunkCount\030\007 \002(\005\022" +
-      "\r\n\005jobId\030\010 \002(\t\"\020\n\016JobListRequest\"\021\n\017File" +
-      "ListRequestB$\n\023ru.ownrobot.tractorB\rProt" +
-      "oMessages"
+      "\n\016messages.proto\"A\n\014JobStatusMsg\022\r\n\005jobI" +
+      "d\030\001 \002(\t\022\020\n\010finished\030\002 \002(\010\022\020\n\010progress\030\003 " +
+      "\001(\005\")\n\tNewJobMsg\022\r\n\005jobId\030\001 \002(\t\022\r\n\005count" +
+      "\030\002 \002(\005\"\037\n\016JobFinishedMsg\022\r\n\005jobId\030\001 \002(\t\"" +
+      "3\n\021ExtraBytesRequest\022\017\n\007chunkId\030\001 \002(\003\022\r\n" +
+      "\005count\030\002 \002(\005\"T\n\024ChunkDownloadRequest\022\013\n\003" +
+      "url\030\001 \002(\t\022\020\n\010startPos\030\002 \002(\005\022\016\n\006endPos\030\003 " +
+      "\002(\005\022\r\n\005jobId\030\004 \002(\t\"\'\n\022ChunkDeleteRequest" +
+      "\022\021\n\tchunkName\030\001 \002(\003\"%\n\021FileDeleteRequest" +
+      "\022\020\n\010fileName\030\001 \002(\t\"\"\n\023FileDownloadReques",
+      "t\022\013\n\003url\030\001 \002(\t\"!\n\020JobDeleteRequest\022\r\n\005jo" +
+      "bId\030\001 \002(\t\"&\n\022FileProcessRequest\022\020\n\010fileN" +
+      "ame\030\001 \002(\t\"\264\001\n\023ChunkProcessRequest\022\021\n\tchu" +
+      "nkName\030\001 \002(\003\022\025\n\rnextChunkName\030\002 \002(\003\022\023\n\013n" +
+      "odeAddress\030\003 \002(\t\022\027\n\017nextNodeAddress\030\004 \002(" +
+      "\t\022\016\n\006offset\030\005 \002(\005\022\022\n\nnextOffset\030\006 \002(\005\022\022\n" +
+      "\nchunkCount\030\007 \002(\005\022\r\n\005jobId\030\010 \002(\t\"\020\n\016JobL" +
+      "istRequest\"\021\n\017FileListRequestB$\n\023ru.ownr" +
+      "obot.tractorB\rProtoMessages"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -7279,7 +7360,7 @@ public final class ProtoMessages {
           internal_static_JobStatusMsg_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_JobStatusMsg_descriptor,
-              new java.lang.String[] { "JobId", "Finished", });
+              new java.lang.String[] { "JobId", "Finished", "Progress", });
           internal_static_NewJobMsg_descriptor =
             getDescriptor().getMessageTypes().get(1);
           internal_static_NewJobMsg_fieldAccessorTable = new

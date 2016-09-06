@@ -52,16 +52,16 @@ public class HttpServer extends AllDirectives  {
         Integer numWorkers = config.getInt("workers.count");
 
         system.actorOf(Props.create(DatabaseActor.class),"database");
-        system.actorOf(Props.create(JobTrackActor.class), "jobTracker");
-        system.actorOf(Props.create(ReduceActor.class), "reducer");
 
         for (int i=0; i< numWorkers; i++) {
-            system.actorOf(Props.create(SendBytesActor.class),"bytes" + i);
-            system.actorOf(Props.create(ChunkSaveActor.class), "filesystem" + i);
-            system.actorOf(Props.create(MapActor.class), "worker" + i);
+            system.actorOf(Props.create(SendBytesActor.class),"bytesender" + i);
+            system.actorOf(Props.create(ChunkSaveActor.class), "chunksaver" + i);
+            system.actorOf(Props.create(MapActor.class), "mapper" + i);
             system.actorOf(Props.create(AggregateActor.class), "aggregator" + i);
-            system.actorOf(Props.create(ChunkDeleteActor.class), "chunkdelete" + i);
-            system.actorOf(Props.create(FileDownloadActor.class), "download" + i);
+            system.actorOf(Props.create(ChunkDeleteActor.class), "chunkdeleter" + i);
+            system.actorOf(Props.create(FileDownloadActor.class), "chunkdownloader" + i);
+            system.actorOf(Props.create(JobTrackActor.class), "tracker" + i);
+            system.actorOf(Props.create(ReduceActor.class), "reducer" + i);
         }
 
 
@@ -72,22 +72,10 @@ public class HttpServer extends AllDirectives  {
         final ActorMaterializer materializer = ActorMaterializer.create(system);
 
         final Flow<HttpRequest, HttpResponse, NotUsed> routeFlow = app.createRoute().flow(system, materializer);
-        final CompletionStage<ServerBinding> binding = http.bindAndHandle(routeFlow, ConnectHttp.toHost("0.0.0.0", 4040), materializer);
+        http.bindAndHandle(routeFlow, ConnectHttp.toHost("0.0.0.0", 4040), materializer);
 
-//        binding
-//                .thenCompose(ServerBinding::unbind)
-//                .thenAccept(unbound -> system.terminate());
     }
 
-    public ActorSelection selectNode(String service){
-        Cluster cluster = Cluster.get(system);
-        final List<ActorSelection> nodes = new ArrayList<>();
-        cluster.state().getMembers().forEach(m -> {
-            if (m.hasRole("worker") && m.status()== MemberStatus.up())
-                nodes.add(system.actorSelection(m.address() + "/user/" + service));
-        });
-        return nodes.get(0);
-    }
 
     public HashMap clusterStatus(){
         Cluster cluster = Cluster.get(system);
@@ -172,7 +160,7 @@ public class HttpServer extends AllDirectives  {
         Route fileDownloadRoute  =
                 parameterOptional("name", optName -> {
                     String url = optName.orElse("none");
-                    system.actorSelection("/user/download0").tell(ProtoMessages.FileDownloadRequest.newBuilder().setUrl(url).build(), ActorRef.noSender() );
+                    system.actorSelection("/user/chunkdownloader0").tell(ProtoMessages.FileDownloadRequest.newBuilder().setUrl(url).build(), ActorRef.noSender() );
                     return complete(HttpEntities.create(ContentTypes.TEXT_HTML_UTF8, renderTemplate(
                             String.format("<div class=\"alert alert-info\" role=\"alert\">Uploading file <strong> %s </strong> </div>", url), null, null,"files")));
                 });

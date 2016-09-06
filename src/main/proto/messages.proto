@@ -5,6 +5,7 @@ option java_outer_classname = "ProtoMessages";
 message JobStatusMsg {
     required string jobId = 1;
     required bool finished = 2;
+    optional int32 progress = 3;
 }
 
 message NewJobMsg{

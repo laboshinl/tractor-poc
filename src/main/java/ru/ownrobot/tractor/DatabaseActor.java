@@ -4,6 +4,7 @@ import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.actor.UntypedActor;
 import akka.cluster.Cluster;
+import akka.cluster.ClusterEvent;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.pattern.Patterns;
@@ -34,29 +35,7 @@ public class DatabaseActor extends UntypedActor {
         return Math.abs(random.nextInt()) % config.getInt("workers.count");
     }
 
-    private final List<ActorSelection> jobTrackers = getJobTrackers();
-
-
-    private ActorSelection selectJobTracker(String jobId) {
-        Collections.sort(jobTrackers, (ActorSelection r1, ActorSelection r2) ->
-                Integer.compare(r1.hashCode(),(r2.hashCode())));
-        return jobTrackers.get(Math.abs(jobId.hashCode() % jobTrackers.size()));
-    }
-
-    private List<ActorSelection> getJobTrackers() {
-
-        try {
-            Thread.sleep(10000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        List<ActorSelection> jobTrackers = new ArrayList<>();
-        cluster.state().getMembers().forEach(m -> {
-            jobTrackers.add(system.actorSelection(m.address() + "/user/jobTracker"));
-        });
-        return jobTrackers;
-    }
+    private final RoutingUtils router = new RoutingUtils(system);
 
     private DBCollection connectDatabase() {
         String host = config.getString("mongo.host");
@@ -91,10 +70,11 @@ public class DatabaseActor extends UntypedActor {
             DBCursor cursor = collection.find(new BasicDBObject("fileName", fileName));
             while (cursor.hasNext()) {
                 DBObject item = cursor.next();
-                system.actorSelection(item.get("address") + "/user/chunkdelete" + random())
+                system.actorSelection(item.get("address") + "/user/chunkdeleter" + random())
                         .tell(ChunkDeleteRequest.newBuilder().setChunkName((Long) item.get("chunkId")).build(), self());
                 collection.remove(item);
             }
+            getSender().tell(cursor.size(),self());
 
         } else if (message instanceof JobDeleteRequest) {
             String jobId = ((JobDeleteRequest) message).getJobId();
@@ -119,6 +99,7 @@ public class DatabaseActor extends UntypedActor {
             BasicDBObject document = new BasicDBObject();
             document.put("jobId", jobStatus.getJobId());
             document.put("status", jobStatus.getFinished());
+            document.put("progress", jobStatus.getProgress());
             collection.update(exists, document, true, false);
 
 
@@ -126,9 +107,9 @@ public class DatabaseActor extends UntypedActor {
             HashMap<String, Integer> result = new HashMap<>();
 
             @SuppressWarnings("unchecked")
-            List<String> files = collection.distinct("uuid");
+            List<String> files = collection.distinct("jobId");
             files.forEach(i -> result.put(i,
-                    (Integer) collection.find(new BasicDBObject("uuid", i)).toArray().get(0).get("status")));
+                    (Integer) collection.find(new BasicDBObject("jobId", i)).toArray().get(0).get("progress")));
             getSender().tell(result, self());
 
 
@@ -140,7 +121,7 @@ public class DatabaseActor extends UntypedActor {
 
             DBCursor result = collection.find(new BasicDBObject("fileName", fileName)).sort(new BasicDBObject("timestamp", 1));
 
-            Await.result(Patterns.ask(selectJobTracker(jobId), NewJobMsg.newBuilder().setJobId(jobId).setCount(result.length()).build(), 10000), Duration.apply("10 sec"));
+            Await.result(Patterns.ask(router.selectTracker(jobId), NewJobMsg.newBuilder().setJobId(jobId).setCount(result.length()).build(), 10000), Duration.apply("10 sec"));
         //selectJobTracker(jobId).tell(NewJobMsg.newBuilder().setJobId(jobId).setCount(result.length()).build(), self());
 
             if (result.length() != 0) {
@@ -167,19 +148,23 @@ public class DatabaseActor extends UntypedActor {
                             .setOffset(offset)
                             .setNodeAddress(address)
                             .build();
-                    system.actorSelection(address + "/user/worker" + random()).tell(request, self());
+                    system.actorSelection(address + "/user/mapper" + random()).tell(request, self());
 
                 }
             } else
                 log.error("No such file in Database {}", fileName);
-        } else {
-            log.info("Unknown database message type %s", message.getClass());
+        } else if(message instanceof ClusterEvent.MemberEvent){
+            router.updateMembers();}
+         else {
+            log.info("Unknown database message type {}", message.getClass());
             unhandled(message);
         }
     }
 
     public void preStart() {
-        log.info("DatabaseActor actor started");
+            cluster.subscribe(getSelf(), ClusterEvent.initialStateAsEvents(),
+                    ClusterEvent.MemberEvent.class, ClusterEvent.UnreachableMember.class);
+            log.info("DatabaseActor actor started");
     }
 
     public void postStop() {
